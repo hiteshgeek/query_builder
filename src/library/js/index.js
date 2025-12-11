@@ -4,8 +4,21 @@
 
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
+import ThemeManager from './ThemeManager.js';
+import InsertBuilder from './InsertBuilder.js';
+import UpdateBuilder from './UpdateBuilder.js';
+import DeleteBuilder from './DeleteBuilder.js';
+import AlterBuilder from './AlterBuilder.js';
+import UserManager from './UserManager.js';
+import PermissionManager from './PermissionManager.js';
+import QueryHistory from './QueryHistory.js';
+import QueryExport from './QueryExport.js';
+import typeToConfirm from './TypeToConfirm.js';
 
 hljs.registerLanguage('sql', sql);
+
+// Initialize theme manager globally
+const themeManager = new ThemeManager();
 
 class QueryBuilder {
     constructor() {
@@ -19,16 +32,131 @@ class QueryBuilder {
         this.limit = null;
         this.offset = null;
 
+        // Query type state
+        this.currentQueryType = 'select';
+
+        // Sub-builders
+        this.insertBuilder = null;
+        this.updateBuilder = null;
+        this.deleteBuilder = null;
+        this.alterBuilder = null;
+        this.userManager = null;
+        this.permissionManager = null;
+
+        // Query history and export
+        this.queryHistory = new QueryHistory();
+        this.queryExport = new QueryExport();
+        this.lastResults = null;
+
+        // DISTINCT option
+        this.distinct = false;
+
+        // Type-to-confirm instance
+        this.typeToConfirm = typeToConfirm;
+
         this.init();
     }
 
     async init() {
         this.bindEvents();
         await this.loadSchema();
+        this.initSubBuilders();
+    }
+
+    initSubBuilders() {
+        // Initialize INSERT builder
+        this.insertBuilder = new InsertBuilder(this.schema, (sql) => {
+            this.updateInsertSQLPreview(sql);
+        });
+        if (this.schema) {
+            this.insertBuilder.updateSchema(this.schema);
+        }
+
+        // Initialize UPDATE builder
+        this.updateBuilder = new UpdateBuilder(this.schema, (sql) => {
+            this.updateUpdateSQLPreview(sql);
+        });
+        if (this.schema) {
+            this.updateBuilder.updateSchema(this.schema);
+        }
+
+        // Initialize DELETE builder
+        this.deleteBuilder = new DeleteBuilder(this.schema, (sql) => {
+            this.updateDeleteSQLPreview(sql);
+        });
+        if (this.schema) {
+            this.deleteBuilder.updateSchema(this.schema);
+        }
+
+        // Initialize ALTER builder
+        this.alterBuilder = new AlterBuilder(this.schema, (sql) => {
+            this.updateAlterSQLPreview(sql);
+        }, this.typeToConfirm);
+        if (this.schema) {
+            this.alterBuilder.updateSchema(this.schema);
+        }
+
+        // Initialize Permission Manager (needs to be before UserManager)
+        this.permissionManager = new PermissionManager(this.typeToConfirm);
+
+        // Initialize User Manager with callback to update permissions
+        this.userManager = new UserManager(this.typeToConfirm, (username, host) => {
+            // When user is selected, also set in permission manager
+            this.permissionManager.setUser(username, host);
+        });
+
+        // Bind user sub-tab switching
+        document.querySelectorAll('.user-sub-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                this.switchUserSubTab(tabName);
+            });
+        });
+
+        // Bind preview buttons
+        document.getElementById('btn-preview-update')?.addEventListener('click', () => this.previewUpdate());
+        document.getElementById('btn-preview-delete')?.addEventListener('click', () => this.previewDelete());
+    }
+
+    updateInsertSQLPreview(sql) {
+        const previewEl = document.querySelector('#insert-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+    }
+
+    updateUpdateSQLPreview(sql) {
+        const previewEl = document.querySelector('#update-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+    }
+
+    updateDeleteSQLPreview(sql) {
+        const previewEl = document.querySelector('#delete-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+    }
+
+    updateAlterSQLPreview(sql) {
+        const previewEl = document.querySelector('#alter-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
     }
 
     bindEvents() {
-        // Tab switching
+        // Query type tab switching
+        document.querySelectorAll('.query-type-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => this.switchQueryType(e.target.closest('.query-type-tab').dataset.type));
+        });
+
+        // Tab switching (Visual/SQL)
         document.querySelectorAll('.panel-tabs .tab').forEach(tab => {
             tab.addEventListener('click', (e) => this.switchTab(e));
         });
@@ -60,6 +188,41 @@ class QueryBuilder {
             this.updateSQLPreview();
         });
 
+        // DISTINCT checkbox
+        document.getElementById('distinct-checkbox')?.addEventListener('change', (e) => {
+            this.distinct = e.target.checked;
+            this.updateSQLPreview();
+        });
+
+        // Export buttons
+        document.getElementById('btn-export-sql')?.addEventListener('click', () => this.exportSQL());
+        document.getElementById('btn-export-csv')?.addEventListener('click', () => this.exportCSV());
+        document.getElementById('btn-export-json')?.addEventListener('click', () => this.exportJSON());
+
+        // History toggle
+        document.getElementById('btn-toggle-history')?.addEventListener('click', () => this.toggleHistory());
+
+        // History sidebar events
+        document.getElementById('btn-close-history')?.addEventListener('click', () => {
+            document.getElementById('history-sidebar')?.classList.remove('open');
+        });
+
+        document.getElementById('btn-clear-history')?.addEventListener('click', () => {
+            if (confirm('Clear all query history?')) {
+                this.queryHistory.clearHistory();
+                this.renderHistory();
+            }
+        });
+
+        document.getElementById('history-search')?.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query) {
+                this.searchHistory(query);
+            } else {
+                this.renderHistory();
+            }
+        });
+
         // Drag and drop for tables
         const selectedTablesEl = document.getElementById('selected-tables');
         if (selectedTablesEl) {
@@ -76,6 +239,41 @@ class QueryBuilder {
                 const tableName = e.dataTransfer.getData('text/plain');
                 if (tableName) this.addTable(tableName);
             });
+        }
+    }
+
+    switchQueryType(type) {
+        if (this.currentQueryType === type) return;
+
+        this.currentQueryType = type;
+
+        // Update tabs
+        document.querySelectorAll('.query-type-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.type === type);
+        });
+
+        // Update panels
+        document.querySelectorAll('.query-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.dataset.panel === type);
+        });
+
+        // Update run button text based on query type
+        const runBtn = document.getElementById('btn-run');
+        if (runBtn) {
+            const labels = {
+                'select': 'Run Query',
+                'insert': 'Insert Data',
+                'update': 'Update Data',
+                'delete': 'Delete Data',
+                'alter': 'Execute ALTER',
+                'users': 'Refresh Users'
+            };
+            runBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                ${labels[type] || 'Run Query'}
+            `;
         }
     }
 
@@ -112,6 +310,20 @@ class QueryBuilder {
 
             this.schema = result.data;
             this.renderTablesList();
+
+            // Update sub-builders with new schema
+            if (this.insertBuilder) {
+                this.insertBuilder.updateSchema(this.schema);
+            }
+            if (this.updateBuilder) {
+                this.updateBuilder.updateSchema(this.schema);
+            }
+            if (this.deleteBuilder) {
+                this.deleteBuilder.updateSchema(this.schema);
+            }
+            if (this.alterBuilder) {
+                this.alterBuilder.updateSchema(this.schema);
+            }
         } catch (error) {
             tablesList.innerHTML = `<div class="loading">Error: ${error.message}</div>`;
             console.error('Failed to load schema:', error);
@@ -207,7 +419,7 @@ class QueryBuilder {
         }
 
         this.renderSelectedTables();
-        this.updateGroupByOptions();
+        this.renderGroupBy();
         this.updateSQLPreview();
     }
 
@@ -224,7 +436,7 @@ class QueryBuilder {
         this.renderSelectedTables();
         this.renderJoins();
         this.renderConditions();
-        this.updateGroupByOptions();
+        this.renderGroupBy();
         this.updateSQLPreview();
     }
 
@@ -385,11 +597,15 @@ class QueryBuilder {
                     <option value=">=" ${cond.operator === '>=' ? 'selected' : ''}>&gt;=</option>
                     <option value="<=" ${cond.operator === '<=' ? 'selected' : ''}>&lt;=</option>
                     <option value="LIKE" ${cond.operator === 'LIKE' ? 'selected' : ''}>LIKE</option>
+                    <option value="NOT LIKE" ${cond.operator === 'NOT LIKE' ? 'selected' : ''}>NOT LIKE</option>
                     <option value="IN" ${cond.operator === 'IN' ? 'selected' : ''}>IN</option>
+                    <option value="NOT IN" ${cond.operator === 'NOT IN' ? 'selected' : ''}>NOT IN</option>
+                    <option value="BETWEEN" ${cond.operator === 'BETWEEN' ? 'selected' : ''}>BETWEEN</option>
+                    <option value="NOT BETWEEN" ${cond.operator === 'NOT BETWEEN' ? 'selected' : ''}>NOT BETWEEN</option>
                     <option value="IS NULL" ${cond.operator === 'IS NULL' ? 'selected' : ''}>IS NULL</option>
                     <option value="IS NOT NULL" ${cond.operator === 'IS NOT NULL' ? 'selected' : ''}>IS NOT NULL</option>
                 </select>
-                <input type="text" class="value" placeholder="Value" value="${cond.value || ''}"
+                <input type="text" class="value" placeholder="${['BETWEEN', 'NOT BETWEEN'].includes(cond.operator) ? 'min AND max' : 'Value'}" value="${cond.value || ''}"
                        ${['IS NULL', 'IS NOT NULL'].includes(cond.operator) ? 'disabled' : ''}>
                 <button class="remove-btn">&times;</button>
             </div>
@@ -471,18 +687,64 @@ class QueryBuilder {
         });
     }
 
-    updateGroupByOptions() {
-        const select = document.getElementById('groupby-select');
+    addToGroupBy(column) {
+        if (!this.groupBy.includes(column)) {
+            this.groupBy.push(column);
+            this.renderGroupBy();
+            this.updateSQLPreview();
+        }
+    }
+
+    removeFromGroupBy(column) {
+        this.groupBy = this.groupBy.filter(c => c !== column);
+        this.renderGroupBy();
+        this.updateSQLPreview();
+    }
+
+    renderGroupBy() {
+        const selectedContainer = document.getElementById('groupby-selected');
+        const availableContainer = document.getElementById('groupby-available');
         const allColumns = this.getAllColumns();
 
-        select.innerHTML = allColumns.map(c =>
-            `<option value="${c}" ${this.groupBy.includes(c) ? 'selected' : ''}>${c}</option>`
-        ).join('');
+        // Render selected columns as tags
+        if (this.groupBy.length === 0) {
+            selectedContainer.innerHTML = '<span class="placeholder">Click columns to add</span>';
+        } else {
+            selectedContainer.innerHTML = this.groupBy.map(col => `
+                <span class="groupby-tag" data-column="${col}">
+                    ${col}
+                    <button class="tag-remove" data-column="${col}">&times;</button>
+                </span>
+            `).join('');
 
-        select.addEventListener('change', () => {
-            this.groupBy = Array.from(select.selectedOptions).map(o => o.value);
-            this.updateSQLPreview();
-        });
+            // Bind remove events
+            selectedContainer.querySelectorAll('.tag-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeFromGroupBy(btn.dataset.column);
+                });
+            });
+        }
+
+        // Render available columns (excluding already selected)
+        const availableColumns = allColumns.filter(c => !this.groupBy.includes(c));
+
+        if (availableColumns.length === 0 && allColumns.length > 0) {
+            availableContainer.innerHTML = '<span class="placeholder-sm">All columns added</span>';
+        } else if (allColumns.length === 0) {
+            availableContainer.innerHTML = '';
+        } else {
+            availableContainer.innerHTML = availableColumns.map(col => `
+                <span class="groupby-option" data-column="${col}">${col}</span>
+            `).join('');
+
+            // Bind click events to add
+            availableContainer.querySelectorAll('.groupby-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    this.addToGroupBy(option.dataset.column);
+                });
+            });
+        }
     }
 
     getColumnsForTable(tableName) {
@@ -507,6 +769,11 @@ class QueryBuilder {
         }
 
         let sql = 'SELECT ';
+
+        // DISTINCT
+        if (this.distinct) {
+            sql += 'DISTINCT ';
+        }
 
         // Columns
         const columns = [];
@@ -539,8 +806,20 @@ class QueryBuilder {
 
                 if (['IS NULL', 'IS NOT NULL'].includes(cond.operator)) {
                     sql += `${cond.column} ${cond.operator}`;
-                } else if (cond.operator === 'IN') {
-                    sql += `${cond.column} IN (${cond.value})`;
+                } else if (['IN', 'NOT IN'].includes(cond.operator)) {
+                    sql += `${cond.column} ${cond.operator} (${cond.value})`;
+                } else if (['BETWEEN', 'NOT BETWEEN'].includes(cond.operator)) {
+                    // Expect value in format "min AND max" or "min, max"
+                    let betweenValue = cond.value;
+                    if (cond.value.includes(',')) {
+                        const parts = cond.value.split(',').map(v => v.trim());
+                        if (parts.length === 2) {
+                            const min = isNaN(parts[0]) ? `'${parts[0]}'` : parts[0];
+                            const max = isNaN(parts[1]) ? `'${parts[1]}'` : parts[1];
+                            betweenValue = `${min} AND ${max}`;
+                        }
+                    }
+                    sql += `${cond.column} ${cond.operator} ${betweenValue}`;
                 } else {
                     const value = isNaN(cond.value) ? `'${cond.value}'` : cond.value;
                     sql += `${cond.column} ${cond.operator} ${value}`;
@@ -578,6 +857,50 @@ class QueryBuilder {
     }
 
     async runQuery() {
+        // Delegate based on current query type
+        switch (this.currentQueryType) {
+            case 'insert':
+                return this.runInsert();
+            case 'update':
+                return this.runUpdate();
+            case 'delete':
+                return this.runDelete();
+            case 'alter':
+                return this.runAlter();
+            case 'users':
+                return this.refreshUsers();
+            default:
+                return this.runSelect();
+        }
+    }
+
+    async refreshUsers() {
+        if (this.userManager) {
+            await this.userManager.loadUsers();
+        }
+    }
+
+    switchUserSubTab(tabName) {
+        // Update tabs
+        document.querySelectorAll('.user-sub-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+
+        // Update panels
+        document.querySelectorAll('.user-sub-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.dataset.panel === tabName);
+        });
+
+        // If switching to permissions and user is selected, load permissions
+        if (tabName === 'permissions' && this.userManager?.selectedUser) {
+            this.permissionManager.setUser(
+                this.userManager.selectedUser.username,
+                this.userManager.selectedUser.host
+            );
+        }
+    }
+
+    async runSelect() {
         const sql = this.buildSQL();
 
         try {
@@ -593,7 +916,7 @@ class QueryBuilder {
                 throw new Error(result.message);
             }
 
-            this.displayResults(result.data);
+            this.displayResults(result.data, sql);
 
             // Also run EXPLAIN
             this.runExplain(sql);
@@ -602,6 +925,434 @@ class QueryBuilder {
             alert('Query error: ' + error.message);
             console.error(error);
         }
+    }
+
+    async runInsert() {
+        if (!this.insertBuilder) return;
+
+        const data = this.insertBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        if (!data.rows.length) {
+            alert('Please add at least one row of data');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/insert.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show success message
+            this.displayInsertResult(result.data);
+
+        } catch (error) {
+            alert('Insert error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    displayInsertResult(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.affected_rows} row(s) inserted`;
+        timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        table.style.display = 'none';
+        noResults.style.display = 'flex';
+        noResults.innerHTML = `
+            <div style="text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-success); margin-bottom: 8px;">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-weight: 600; color: var(--color-success);">Insert Successful</div>
+                <div style="margin-top: 4px;">${data.affected_rows} row(s) inserted</div>
+                ${data.last_insert_id ? `<div style="color: var(--text-muted); font-size: 11px;">Last Insert ID: ${data.last_insert_id}</div>` : ''}
+            </div>
+        `;
+    }
+
+    async previewUpdate() {
+        if (!this.updateBuilder) return;
+
+        const data = this.updateBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        if (Object.keys(data.set).length === 0) {
+            alert('Please select at least one column to update');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/update.php?preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show preview result
+            this.displayUpdatePreview(result.data);
+
+        } catch (error) {
+            alert('Preview error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    async runUpdate() {
+        if (!this.updateBuilder) return;
+
+        const data = this.updateBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        if (Object.keys(data.set).length === 0) {
+            alert('Please select at least one column to update');
+            return;
+        }
+
+        // Warn if no WHERE clause
+        if (this.updateBuilder.hasNoWhereClause()) {
+            const confirmed = confirm(
+                '⚠️ WARNING: No WHERE clause specified!\n\n' +
+                'This will update ALL rows in the table.\n\n' +
+                'Are you sure you want to proceed?'
+            );
+            if (!confirmed) return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/update.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show success message
+            this.displayUpdateResult(result.data);
+
+        } catch (error) {
+            alert('Update error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    displayUpdatePreview(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.affected_count} row(s) will be affected`;
+        timeEl.textContent = 'Preview';
+
+        table.style.display = 'none';
+        noResults.style.display = 'flex';
+
+        const warningClass = !data.has_where_clause ? 'color: var(--color-warning);' : '';
+
+        noResults.innerHTML = `
+            <div style="text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-info); margin-bottom: 8px;">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <div style="font-weight: 600; color: var(--color-info);">Update Preview</div>
+                <div style="margin-top: 4px; ${warningClass}">${data.affected_count} row(s) will be affected</div>
+                ${!data.has_where_clause ? `<div style="color: var(--color-warning); font-size: 11px; margin-top: 4px;">⚠️ No WHERE clause - ALL rows will be updated!</div>` : ''}
+            </div>
+        `;
+    }
+
+    displayUpdateResult(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.affected_rows} row(s) updated`;
+        timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        table.style.display = 'none';
+        noResults.style.display = 'flex';
+        noResults.innerHTML = `
+            <div style="text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-success); margin-bottom: 8px;">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-weight: 600; color: var(--color-success);">Update Successful</div>
+                <div style="margin-top: 4px;">${data.affected_rows} row(s) updated</div>
+            </div>
+        `;
+    }
+
+    async previewDelete() {
+        if (!this.deleteBuilder) return;
+
+        const data = this.deleteBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/delete.php?preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show preview result
+            this.displayDeletePreview(result.data);
+
+        } catch (error) {
+            alert('Preview error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    async runDelete() {
+        if (!this.deleteBuilder) return;
+
+        const data = this.deleteBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        // If no WHERE clause, require type-to-confirm
+        if (this.deleteBuilder.hasNoWhereClause()) {
+            const tableName = this.deleteBuilder.getTableName();
+            const confirmed = await this.typeToConfirm.show({
+                title: 'Confirm Delete All Rows',
+                message: `This will delete ALL rows from "${tableName}"`,
+                details: 'This action cannot be undone.',
+                confirmWord: tableName,
+                confirmButtonText: 'Delete All'
+            });
+
+            if (!confirmed) return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/delete.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show success message
+            this.displayDeleteResult(result.data);
+
+        } catch (error) {
+            alert('Delete error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    displayDeletePreview(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.affected_count} row(s) will be deleted`;
+        timeEl.textContent = 'Preview';
+
+        // If there are sample rows, show them in the table
+        if (data.sample_rows && data.sample_rows.length > 0) {
+            table.style.display = '';
+            noResults.style.display = 'none';
+
+            const columns = Object.keys(data.sample_rows[0]);
+
+            table.querySelector('thead').innerHTML = `
+                <tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>
+            `;
+
+            table.querySelector('tbody').innerHTML = data.sample_rows.map(row => `
+                <tr style="background: rgba(var(--color-danger-rgb, 239, 68, 68), 0.1);">
+                    ${columns.map(c => `<td>${row[c] ?? 'NULL'}</td>`).join('')}
+                </tr>
+            `).join('');
+
+            // Add warning message above table
+            if (data.affected_count > 10) {
+                noResults.style.display = 'flex';
+                noResults.innerHTML = `<div style="color: var(--text-muted); font-size: 11px;">Showing first 10 of ${data.affected_count} rows to be deleted</div>`;
+            }
+        } else {
+            table.style.display = 'none';
+            noResults.style.display = 'flex';
+
+            const dangerStyle = !data.has_where_clause ? 'color: var(--color-danger);' : 'color: var(--color-warning);';
+
+            noResults.innerHTML = `
+                <div style="text-align: center;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="${dangerStyle} margin-bottom: 8px;">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        <line x1="10" y1="11" x2="10" y2="17"/>
+                        <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    <div style="font-weight: 600; ${dangerStyle}">Delete Preview</div>
+                    <div style="margin-top: 4px; ${dangerStyle}">${data.affected_count} row(s) will be deleted</div>
+                    ${!data.has_where_clause ? `<div style="color: var(--color-danger); font-size: 11px; margin-top: 4px;">⚠️ No WHERE clause - ALL rows will be deleted!</div>` : ''}
+                </div>
+            `;
+        }
+    }
+
+    displayDeleteResult(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.affected_rows} row(s) deleted`;
+        timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        table.style.display = 'none';
+        noResults.style.display = 'flex';
+        noResults.innerHTML = `
+            <div style="text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-success); margin-bottom: 8px;">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-weight: 600; color: var(--color-success);">Delete Successful</div>
+                <div style="margin-top: 4px;">${data.affected_rows} row(s) deleted</div>
+            </div>
+        `;
+    }
+
+    async runAlter() {
+        if (!this.alterBuilder) return;
+
+        const data = this.alterBuilder.getData();
+
+        if (!data.table) {
+            alert('Please select a table');
+            return;
+        }
+
+        if (!data.operations.length) {
+            alert('Please add at least one operation');
+            return;
+        }
+
+        // Confirm if there are dangerous operations
+        if (this.alterBuilder.hasDangerousOperations()) {
+            const confirmed = await this.typeToConfirm.show({
+                title: 'Confirm ALTER Operations',
+                message: 'This ALTER contains DROP operations',
+                details: 'Some operations cannot be undone. Please review carefully.',
+                confirmWord: 'ALTER',
+                confirmButtonText: 'Execute ALTER'
+            });
+
+            if (!confirmed) return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/alter.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            // Show success message
+            this.displayAlterResult(result.data);
+
+            // Refresh schema to reflect changes
+            await this.loadSchema();
+
+            // Clear the operations queue
+            this.alterBuilder.clear();
+
+        } catch (error) {
+            alert('ALTER error: ' + error.message);
+            console.error(error);
+        }
+    }
+
+    displayAlterResult(data) {
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const noResults = document.getElementById('no-results');
+        const table = document.getElementById('results-table');
+
+        countEl.textContent = `${data.operations_count} operation(s) executed`;
+        timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        table.style.display = 'none';
+        noResults.style.display = 'flex';
+        noResults.innerHTML = `
+            <div style="text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-success); margin-bottom: 8px;">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-weight: 600; color: var(--color-success);">ALTER Successful</div>
+                <div style="margin-top: 4px;">${data.operations_count} operation(s) completed</div>
+                <div style="color: var(--text-muted); font-size: 11px; margin-top: 4px;">Schema has been refreshed</div>
+            </div>
+        `;
     }
 
     async runExplain(sql) {
@@ -622,7 +1373,7 @@ class QueryBuilder {
         }
     }
 
-    displayResults(data) {
+    displayResults(data, sql = null) {
         const table = document.getElementById('results-table');
         const noResults = document.getElementById('no-results');
         const countEl = document.getElementById('results-count');
@@ -630,6 +1381,14 @@ class QueryBuilder {
 
         countEl.textContent = `${data.row_count} rows`;
         timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        // Store results for export
+        this.lastResults = data;
+
+        // Add to history
+        if (sql) {
+            this.queryHistory.addQuery(sql, 'SELECT', data.row_count, data.execution_time_ms);
+        }
 
         if (!data.rows.length) {
             table.style.display = 'none';
@@ -676,25 +1435,223 @@ class QueryBuilder {
         `;
     }
 
+    // Export methods
+    exportSQL() {
+        const sql = this.buildSQL();
+        if (!sql || sql === 'SELECT * FROM table_name;') {
+            alert('No query to export');
+            return;
+        }
+        this.queryExport.exportSQL(sql, 'query');
+    }
+
+    exportCSV() {
+        if (!this.lastResults || !this.lastResults.rows || !this.lastResults.rows.length) {
+            alert('No results to export. Run a query first.');
+            return;
+        }
+        this.queryExport.exportCSV(this.lastResults.rows, 'results');
+    }
+
+    exportJSON() {
+        if (!this.lastResults || !this.lastResults.rows || !this.lastResults.rows.length) {
+            alert('No results to export. Run a query first.');
+            return;
+        }
+        this.queryExport.exportJSON(this.lastResults.rows, 'results');
+    }
+
+    // History methods
+    toggleHistory() {
+        const sidebar = document.getElementById('history-sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('open');
+            if (sidebar.classList.contains('open')) {
+                this.renderHistory();
+            }
+        }
+    }
+
+    renderHistory() {
+        const container = document.getElementById('history-list');
+        if (!container) return;
+
+        const history = this.queryHistory.getHistory();
+
+        if (!history.length) {
+            container.innerHTML = '<div class="placeholder">No queries in history</div>';
+            return;
+        }
+
+        container.innerHTML = history.map(entry => `
+            <div class="history-item" data-id="${entry.id}">
+                <div class="history-item-header">
+                    <span class="history-type ${entry.type.toLowerCase()}">${entry.type}</span>
+                    <span class="history-time">${this.queryHistory.formatTimestamp(entry.timestamp)}</span>
+                </div>
+                <div class="history-sql">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
+                <div class="history-meta">
+                    ${entry.rowCount !== null ? `<span>${entry.rowCount} rows</span>` : ''}
+                    ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
+                </div>
+                <div class="history-actions">
+                    <button class="btn-use" data-id="${entry.id}" title="Use this query">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </button>
+                    <button class="btn-delete" data-id="${entry.id}" title="Remove from history">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Bind events
+        container.querySelectorAll('.btn-use').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.dataset.id);
+                this.useHistoryQuery(id);
+            });
+        });
+
+        container.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                this.queryHistory.removeEntry(id);
+                this.renderHistory();
+            });
+        });
+
+        // Click on item to use
+        container.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('button')) {
+                    const id = parseInt(item.dataset.id);
+                    this.useHistoryQuery(id);
+                }
+            });
+        });
+    }
+
+    useHistoryQuery(id) {
+        const history = this.queryHistory.getHistory();
+        const entry = history.find(h => h.id === id);
+        if (!entry) return;
+
+        // Switch to SELECT tab and SQL mode
+        this.switchQueryType('select');
+
+        // Set the SQL in the editor
+        const editorEl = document.getElementById('sql-editor');
+        const previewEl = document.querySelector('#sql-preview code');
+
+        if (editorEl) {
+            editorEl.value = entry.sql;
+        }
+        if (previewEl) {
+            previewEl.textContent = entry.sql;
+            hljs.highlightElement(previewEl);
+        }
+
+        // Switch to SQL tab
+        const sqlTab = document.querySelector('.panel-tabs .tab[data-tab="sql"]');
+        if (sqlTab) {
+            sqlTab.click();
+        }
+
+        // Close history sidebar
+        document.getElementById('history-sidebar')?.classList.remove('open');
+    }
+
+    searchHistory(query) {
+        const results = this.queryHistory.search(query);
+        const container = document.getElementById('history-list');
+        if (!container) return;
+
+        if (!results.length) {
+            container.innerHTML = `<div class="placeholder">No matches found for "${this.escapeHtml(query)}"</div>`;
+            return;
+        }
+
+        // Reuse renderHistory logic with filtered results
+        container.innerHTML = results.map(entry => `
+            <div class="history-item" data-id="${entry.id}">
+                <div class="history-item-header">
+                    <span class="history-type ${entry.type.toLowerCase()}">${entry.type}</span>
+                    <span class="history-time">${this.queryHistory.formatTimestamp(entry.timestamp)}</span>
+                </div>
+                <div class="history-sql">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
+            </div>
+        `).join('');
+
+        // Bind click events
+        container.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const id = parseInt(item.dataset.id);
+                this.useHistoryQuery(id);
+            });
+        });
+    }
+
+    truncateSQL(sql, maxLength) {
+        if (sql.length <= maxLength) return sql;
+        return sql.substring(0, maxLength) + '...';
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     clearAll() {
-        this.selectedTables = [];
-        this.selectedColumns = {};
-        this.joins = [];
-        this.conditions = [];
-        this.orderBy = [];
-        this.groupBy = [];
-        this.limit = null;
-        this.offset = null;
+        // Clear based on current query type
+        if (this.currentQueryType === 'insert') {
+            if (this.insertBuilder) {
+                this.insertBuilder.clear();
+            }
+        } else if (this.currentQueryType === 'update') {
+            if (this.updateBuilder) {
+                this.updateBuilder.clear();
+            }
+        } else if (this.currentQueryType === 'delete') {
+            if (this.deleteBuilder) {
+                this.deleteBuilder.clear();
+            }
+        } else if (this.currentQueryType === 'alter') {
+            if (this.alterBuilder) {
+                this.alterBuilder.clear();
+            }
+        } else if (this.currentQueryType === 'users') {
+            if (this.userManager) {
+                this.userManager.clear();
+            }
+        } else {
+            // Clear SELECT builder state
+            this.selectedTables = [];
+            this.selectedColumns = {};
+            this.joins = [];
+            this.conditions = [];
+            this.orderBy = [];
+            this.groupBy = [];
+            this.limit = null;
+            this.offset = null;
 
-        document.getElementById('limit-input').value = '';
-        document.getElementById('offset-input').value = '';
+            document.getElementById('limit-input').value = '';
+            document.getElementById('offset-input').value = '';
 
-        this.renderSelectedTables();
-        this.renderJoins();
-        this.renderConditions();
-        this.renderOrderBy();
-        this.updateGroupByOptions();
-        this.updateSQLPreview();
+            this.renderSelectedTables();
+            this.renderJoins();
+            this.renderConditions();
+            this.renderOrderBy();
+            this.renderGroupBy();
+            this.updateSQLPreview();
+        }
 
         // Clear results
         document.getElementById('results-table').querySelector('thead').innerHTML = '';
@@ -709,6 +1666,9 @@ class QueryBuilder {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.queryBuilder = new QueryBuilder();
+
+    // Bind theme toggle buttons
+    themeManager.bindToggleButtons();
 });
 
 export default QueryBuilder;

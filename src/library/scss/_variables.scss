@@ -1,47 +1,51 @@
-// Colors
-$color-primary: #4f46e5;
-$color-primary-dark: #4338ca;
-$color-primary-light: #818cf8;
+// ==========================================
+// Variables - Using CSS Custom Properties for Theming
+// ==========================================
 
-$color-success: #10b981;
-$color-warning: #f59e0b;
-$color-danger: #ef4444;
-$color-info: #3b82f6;
+// Colors (reference CSS custom properties)
+$color-primary: var(--color-primary);
+$color-primary-dark: var(--color-primary-dark);
+$color-primary-light: var(--color-primary-light);
 
-// Grays
-$gray-50: #f9fafb;
-$gray-100: #f3f4f6;
-$gray-200: #e5e7eb;
-$gray-300: #d1d5db;
-$gray-400: #9ca3af;
-$gray-500: #6b7280;
-$gray-600: #4b5563;
-$gray-700: #374151;
-$gray-800: #1f2937;
-$gray-900: #111827;
+$color-success: var(--color-success);
+$color-warning: var(--color-warning);
+$color-danger: var(--color-danger);
+$color-info: var(--color-info);
+
+// Grays (reference CSS custom properties)
+$gray-50: var(--gray-50);
+$gray-100: var(--gray-100);
+$gray-200: var(--gray-200);
+$gray-300: var(--gray-300);
+$gray-400: var(--gray-400);
+$gray-500: var(--gray-500);
+$gray-600: var(--gray-600);
+$gray-700: var(--gray-700);
+$gray-800: var(--gray-800);
+$gray-900: var(--gray-900);
 
 // Background
-$bg-primary: #ffffff;
-$bg-secondary: $gray-50;
-$bg-tertiary: $gray-100;
+$bg-primary: var(--bg-primary);
+$bg-secondary: var(--bg-secondary);
+$bg-tertiary: var(--bg-tertiary);
 
 // Text
-$text-primary: $gray-900;
-$text-secondary: $gray-600;
-$text-muted: $gray-400;
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-muted: var(--text-muted);
 
 // Borders
-$border-color: $gray-200;
+$border-color: var(--border-color);
 $border-radius: 6px;
 $border-radius-lg: 8px;
 
-// Shadows
-$shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-$shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-$shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-$shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+// Shadows (reference CSS custom properties)
+$shadow-sm: var(--shadow-sm);
+$shadow: var(--shadow);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
 
-// Spacing
+// Spacing (static values)
 $spacing-xs: 4px;
 $spacing-sm: 8px;
 $spacing-md: 16px;
