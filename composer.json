@@ -1,14 +1,14 @@
 {
-    "name": "metric-suite/metric-suite",
-    "description": "Modular dashboard component library",
-    "type": "project",
-    "require": {
-        "php": ">=7.4",
-        "vlucas/phpdotenv": "^5.6"
-    },
-    "autoload": {
-        "psr-4": {
-            "MetricSuite\\": "includes/"
-        }
+  "name": "query-builder/query-builder",
+  "description": "A PHP application for building and managing database queries.",
+  "type": "project",
+  "require": {
+    "php": ">=7.4",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "QueryBuilder\\": "includes/"
     }
+  }
 }
