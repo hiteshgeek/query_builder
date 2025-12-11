@@ -1,0 +1,50 @@
+{
+  "name": "metric-suite",
+  "version": "0.0.1",
+  "description": "",
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-private-methods": "^7.18.6",
+    "@babel/preset-env": "^7.28.5",
+    "@rollup/plugin-babel": "^6.1.0",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-replace": "^6.0.3",
+    "@rollup/stream": "^3.0.1",
+    "chokidar": "^3.5.3",
+    "concurrently": "^8.2.0",
+    "core-js": "^3.46.0",
+    "cross-env": "^10.1.0",
+    "del": "^8.0.1",
+    "gulp-clean-css": "^4.3.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-if": "^3.0.0",
+    "gulp-javascript-obfuscator": "^1.1.6",
+    "gulp-load-plugins": "^2.0.8",
+    "gulp-noop": "^1.0.1",
+    "gulp-plumber": "^1.2.1",
+    "gulp-rev": "^9.0.0",
+    "gulp-sass": "^6.0.1",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-uglify-es": "^3.0.0",
+    "postcss": "^8.5.6",
+    "postcss-preset-env": "^10.4.0",
+    "rimraf": "^6.1.0",
+    "rollup": "^4.53.3",
+    "sass": "^1.93.3",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0",
+    "vite": "^5.0.0"
+  },
+  "scripts": {
+    "dev": "gulp dev",
+    "prod": "NODE_ENV=production gulp prod",
+    "clean": "gulp clean"
+  },
+  "dependencies": {
+    "echarts": "^5.6.0",
+    "gulp": "^4.0.2",
+    "highlight.js": "^11.11.1"
+  }
+}

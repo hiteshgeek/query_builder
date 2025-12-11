@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Composer dependencies (PHP)
+vendor/
+composer.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Build directories
+build/
+dist/
+public/build/
+
+# PHP specific
+*.cache
+cache/
+tmp/
+temp/
+uploads/
+.phpunit.result.cache
+
+# WordPress (if applicable)
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+
+# Database
+# *.sql
+# *.sqlite
+# *.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+layouts
