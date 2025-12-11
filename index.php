@@ -37,6 +37,14 @@ $basePath = get_base_path();
                 <span>Query Builder</span>
             </div>
             <div class="app-actions">
+                <!-- Saved Queries Toggle -->
+                <button class="btn-icon" id="btn-toggle-saved" title="Saved Queries">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                </button>
                 <!-- History Toggle -->
                 <button class="btn-icon" id="btn-toggle-history" title="Query History">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,6 +78,14 @@ $basePath = get_base_path();
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
                     Clear
+                </button>
+                <button class="btn btn-secondary" id="btn-save-query">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save
                 </button>
                 <button class="btn btn-primary" id="btn-run">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,8 +123,24 @@ $basePath = get_base_path();
                 </div>
             </aside>
 
+            <!-- Saved Queries Sidebar -->
+            <aside class="saved-queries-sidebar" id="saved-queries-sidebar">
+                <div class="saved-queries-sidebar-header">
+                    <h3>Saved Queries</h3>
+                    <button class="btn-icon btn-sm" id="btn-close-saved" title="Close">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="saved-queries-panel" id="saved-queries-panel">
+                    <!-- Populated by SavedQueries.js -->
+                </div>
+            </aside>
+
             <!-- Sidebar - Tables & Columns -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h3>Tables</h3>
                     <button class="btn-icon" id="btn-refresh-schema" title="Refresh Schema">
@@ -125,6 +157,9 @@ $basePath = get_base_path();
                     <div class="loading">Loading schema...</div>
                 </div>
             </aside>
+
+            <!-- Sidebar Resizer -->
+            <div class="resizer resizer-horizontal" id="sidebar-resizer"></div>
 
             <!-- Main Content -->
             <main class="main-content">
@@ -182,25 +217,35 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel active" data-panel="select">
                     <div class="panel-header">
                         <h3>SELECT Query</h3>
-                        <div class="panel-tabs">
-                            <button class="tab active" data-tab="visual">Visual</button>
-                            <button class="tab" data-tab="sql">SQL</button>
-                        </div>
                     </div>
 
                     <!-- Visual Builder -->
-                    <div class="panel-content tab-content active" id="tab-visual">
+                    <div class="panel-content" id="tab-visual">
                         <!-- Selected Tables -->
                         <div class="builder-section">
                             <div class="section-header">
-                                <span>SELECT</span>
-                                <label class="distinct-checkbox">
-                                    <input type="checkbox" id="distinct-checkbox">
-                                    <span>DISTINCT</span>
-                                </label>
+                                <span>FROM</span>
                             </div>
                             <div class="selected-tables" id="selected-tables">
-                                <div class="placeholder">Drag tables here or click to add</div>
+                                <div class="placeholder">Drag tables here or double-click from sidebar</div>
+                            </div>
+                            <div class="table-alias-hint">Tip: Click a table to set alias (for self-joins, add same table twice)</div>
+                        </div>
+
+                        <!-- Columns -->
+                        <div class="builder-section">
+                            <div class="section-header">
+                                <span>COLUMNS</span>
+                                <div class="select-actions">
+                                    <button class="btn-sm" id="btn-select-all">All</button>
+                                    <button class="btn-sm" id="btn-select-none">None</button>
+                                </div>
+                            </div>
+                            <div class="columns-wrapper">
+                                <div class="columns-selected" id="columns-selected">
+                                    <span class="placeholder">Add tables to select columns</span>
+                                </div>
+                                <div class="columns-available" id="columns-available"></div>
                             </div>
                         </div>
 
@@ -210,6 +255,7 @@ $basePath = get_base_path();
                                 <span>JOIN</span>
                                 <button class="btn-sm" id="btn-add-join">+ Add Join</button>
                             </div>
+                            <div class="join-suggestions" id="join-suggestions"></div>
                             <div class="joins-container" id="joins-container"></div>
                         </div>
 
@@ -239,9 +285,13 @@ $basePath = get_base_path();
                         <div class="builder-section">
                             <div class="section-header">
                                 <span>ORDER BY</span>
-                                <button class="btn-sm" id="btn-add-orderby">+ Add</button>
                             </div>
-                            <div class="orderby-container" id="orderby-container"></div>
+                            <div class="orderby-wrapper">
+                                <div class="orderby-selected" id="orderby-selected">
+                                    <span class="placeholder">Click columns to add</span>
+                                </div>
+                                <div class="orderby-available" id="orderby-available"></div>
+                            </div>
                         </div>
 
                         <!-- Limit -->
@@ -252,14 +302,6 @@ $basePath = get_base_path();
                                 <label class="limit-label">OFFSET</label>
                                 <input type="number" id="offset-input" placeholder="0" min="0">
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- SQL Editor -->
-                    <div class="panel-content tab-content" id="tab-sql">
-                        <div class="sql-editor-container">
-                            <pre id="sql-preview"><code class="language-sql">SELECT * FROM table_name;</code></pre>
-                            <textarea id="sql-editor" placeholder="Write your SQL query here..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -288,14 +330,14 @@ $basePath = get_base_path();
                         </div>
                     </div>
                     <div class="panel-content">
-                        <!-- Table Selection -->
+                        <!-- Table Selection (Drag & Drop) -->
                         <div class="builder-section">
                             <div class="section-header">
-                                <span>TABLE</span>
+                                <span>INTO TABLE</span>
                             </div>
-                            <select id="insert-table-select" class="full-width-select">
-                                <option value="">Select a table...</option>
-                            </select>
+                            <div class="table-drop-zone" id="insert-table-drop">
+                                <div class="placeholder">Drag a table here or double-click from sidebar</div>
+                            </div>
                         </div>
 
                         <!-- Data Entry Form -->
@@ -309,13 +351,6 @@ $basePath = get_base_path();
                             </div>
                         </div>
 
-                        <!-- SQL Preview -->
-                        <div class="builder-section">
-                            <div class="section-header">
-                                <span>SQL PREVIEW</span>
-                            </div>
-                            <pre id="insert-sql-preview" class="sql-preview-box"><code class="language-sql">-- Select a table and add rows to generate INSERT statement</code></pre>
-                        </div>
                     </div>
                 </div>
 
@@ -332,14 +367,14 @@ $basePath = get_base_path();
                         </button>
                     </div>
                     <div class="panel-content">
-                        <!-- Table Selection -->
+                        <!-- Table Selection (Drag & Drop) -->
                         <div class="builder-section">
                             <div class="section-header">
-                                <span>TABLE</span>
+                                <span>UPDATE TABLE</span>
                             </div>
-                            <select id="update-table-select" class="full-width-select">
-                                <option value="">Select a table...</option>
-                            </select>
+                            <div class="table-drop-zone" id="update-table-drop">
+                                <div class="placeholder">Drag a table here or double-click from sidebar</div>
+                            </div>
                         </div>
 
                         <!-- SET Clause -->
@@ -361,13 +396,6 @@ $basePath = get_base_path();
                             <div id="update-conditions-container"></div>
                         </div>
 
-                        <!-- SQL Preview -->
-                        <div class="builder-section">
-                            <div class="section-header">
-                                <span>SQL PREVIEW</span>
-                            </div>
-                            <pre id="update-sql-preview" class="sql-preview-box"><code class="language-sql">-- Select a table to generate UPDATE statement</code></pre>
-                        </div>
                     </div>
                 </div>
 
@@ -384,14 +412,14 @@ $basePath = get_base_path();
                         </button>
                     </div>
                     <div class="panel-content">
-                        <!-- Table Selection -->
+                        <!-- Table Selection (Drag & Drop) -->
                         <div class="builder-section">
                             <div class="section-header">
-                                <span>TABLE</span>
+                                <span>FROM TABLE</span>
                             </div>
-                            <select id="delete-table-select" class="full-width-select">
-                                <option value="">Select a table...</option>
-                            </select>
+                            <div class="table-drop-zone" id="delete-table-drop">
+                                <div class="placeholder">Drag a table here or double-click from sidebar</div>
+                            </div>
                         </div>
 
                         <!-- WHERE Clause -->
@@ -403,13 +431,6 @@ $basePath = get_base_path();
                             <div id="delete-conditions-container"></div>
                         </div>
 
-                        <!-- SQL Preview -->
-                        <div class="builder-section">
-                            <div class="section-header">
-                                <span>SQL PREVIEW</span>
-                            </div>
-                            <pre id="delete-sql-preview" class="sql-preview-box"><code class="language-sql">-- Select a table to generate DELETE statement</code></pre>
-                        </div>
                     </div>
                 </div>
 
@@ -419,14 +440,14 @@ $basePath = get_base_path();
                         <h3>ALTER Table</h3>
                     </div>
                     <div class="panel-content alter-panel-content">
-                        <!-- Table Selection -->
+                        <!-- Table Selection (Drag & Drop) -->
                         <div class="builder-section alter-table-section">
                             <div class="section-header">
-                                <span>TABLE</span>
+                                <span>ALTER TABLE</span>
                             </div>
-                            <select id="alter-table-select" class="full-width-select">
-                                <option value="">Select a table...</option>
-                            </select>
+                            <div class="table-drop-zone" id="alter-table-drop">
+                                <div class="placeholder">Drag a table here or double-click from sidebar</div>
+                            </div>
                         </div>
 
                         <!-- Section Tabs -->
@@ -516,13 +537,6 @@ $basePath = get_base_path();
                             </div>
                         </div>
 
-                        <!-- SQL Preview -->
-                        <div class="builder-section">
-                            <div class="section-header">
-                                <span>SQL PREVIEW</span>
-                            </div>
-                            <pre id="alter-sql-preview" class="sql-preview-box"><code class="language-sql">-- Select a table and add operations to generate ALTER statement</code></pre>
-                        </div>
                     </div>
                 </div>
 
@@ -613,63 +627,108 @@ $basePath = get_base_path();
                     </div>
                 </div>
 
-                <!-- Results Panel -->
-                <div class="results-panel">
-                    <div class="panel-header">
-                        <h3>Results</h3>
-                        <div class="results-meta">
-                            <span id="results-count"></span>
-                            <span id="results-time"></span>
-                        </div>
-                        <div class="results-actions">
-                            <button class="btn-sm" id="btn-export-sql" title="Export SQL">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                SQL
-                            </button>
-                            <button class="btn-sm" id="btn-export-csv" title="Export CSV">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                CSV
-                            </button>
-                            <button class="btn-sm" id="btn-export-json" title="Export JSON">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                JSON
-                            </button>
-                        </div>
-                        <div class="panel-tabs">
-                            <button class="tab active" data-tab="results">Data</button>
-                            <button class="tab" data-tab="explain">Explain</button>
-                        </div>
+            </main>
+        </div>
+
+        <!-- Bottom Panel Resizer -->
+        <div class="resizer resizer-vertical" id="bottom-resizer"></div>
+
+        <!-- Bottom Panel (SQL Query + Results) -->
+        <div class="bottom-panel" id="bottom-panel">
+            <div class="bottom-panel-tabs">
+                <button class="bottom-tab active" data-tab="sql-preview">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                    SQL Query
+                </button>
+                <button class="bottom-tab" data-tab="results">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                    Results
+                    <span class="results-badge" id="results-badge"></span>
+                </button>
+                <button class="bottom-tab" data-tab="explain">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Explain
+                </button>
+                <div class="bottom-panel-actions">
+                    <span class="results-meta">
+                        <span id="results-count"></span>
+                        <span id="results-time"></span>
+                    </span>
+                    <button class="btn-sm" id="btn-export-sql" title="Export SQL">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        SQL
+                    </button>
+                    <button class="btn-sm" id="btn-export-csv" title="Export CSV">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        CSV
+                    </button>
+                    <button class="btn-sm" id="btn-export-json" title="Export JSON">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        JSON
+                    </button>
+                    <button class="btn-sm" id="btn-copy-sql" title="Copy SQL">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- SQL Preview Tab -->
+            <div class="bottom-panel-content active" id="bottom-sql-preview">
+                <div class="bottom-sql-content">
+                    <div class="sql-preview-wrapper">
+                        <pre id="sql-preview-bottom"><code class="language-sql">SELECT * FROM table_name;</code></pre>
                     </div>
-                    <div class="panel-content tab-content active" id="tab-results">
-                        <div class="results-table-container">
-                            <table class="results-table" id="results-table">
-                                <thead></thead>
-                                <tbody></tbody>
-                            </table>
-                            <div class="no-results" id="no-results">
-                                Run a query to see results
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel-content tab-content" id="tab-explain">
-                        <div class="explain-container" id="explain-container">
-                            <div class="no-results">Run a query with EXPLAIN to see analysis</div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div class="bottom-panel-content" id="bottom-results">
+                <div class="bottom-results-content">
+                    <div class="results-table-wrapper">
+                        <table class="results-table" id="results-table">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="no-results" id="no-results">
+                            Run a query to see results
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+
+            <!-- Explain Tab -->
+            <div class="bottom-panel-content" id="bottom-explain">
+                <div class="explain-container" id="explain-container">
+                    <div class="no-results">Run a query with EXPLAIN to see analysis</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -693,6 +752,70 @@ $basePath = get_base_path();
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="btn-cancel-import-footer">Cancel</button>
                 <button class="btn btn-primary" id="btn-do-import">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Query Modal -->
+    <div class="modal" id="save-query-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-save-query">
+            <div class="modal-header">
+                <h3 class="modal-title">Save Query</h3>
+                <button class="btn-icon modal-close" id="btn-cancel-save-query">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="save-query-title">Title <span class="required">*</span></label>
+                    <input type="text" id="save-query-title" placeholder="e.g., Active users report" required>
+                </div>
+                <div class="form-group">
+                    <label for="save-query-description">Description</label>
+                    <textarea id="save-query-description" placeholder="Brief description of what this query does..." rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="save-query-group">Group</label>
+                        <input type="text" id="save-query-group" list="groups-datalist" placeholder="e.g., Reports">
+                        <datalist id="groups-datalist"></datalist>
+                    </div>
+                    <div class="form-group form-group-favorite">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="save-query-favorite">
+                            <span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                                Favorite
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="save-query-tags">Tags</label>
+                    <input type="text" id="save-query-tags" placeholder="e.g., users, analytics, daily (comma separated)">
+                    <span class="form-hint" id="tags-hint">Separate multiple tags with commas</span>
+                </div>
+                <div class="form-group">
+                    <label>SQL Preview</label>
+                    <pre class="sql-preview-mini" id="save-query-sql-preview"><code class="language-sql"></code></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-save-query-footer">Cancel</button>
+                <button class="btn btn-primary" id="btn-do-save-query">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save Query
+                </button>
             </div>
         </div>
     </div>

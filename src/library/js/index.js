@@ -14,6 +14,9 @@ import PermissionManager from './PermissionManager.js';
 import QueryHistory from './QueryHistory.js';
 import QueryExport from './QueryExport.js';
 import typeToConfirm from './TypeToConfirm.js';
+import toast from './Toast.js';
+import resizeManager from './ResizeManager.js';
+import savedQueries from './SavedQueries.js';
 
 hljs.registerLanguage('sql', sql);
 
@@ -23,14 +26,27 @@ const themeManager = new ThemeManager();
 class QueryBuilder {
     constructor() {
         this.schema = null;
-        this.selectedTables = [];
-        this.selectedColumns = {}; // { tableName: [columns] }
+        this.selectedTables = []; // Array of { name, alias, colorIndex }
+        this.selectedColumns = {}; // { tableKey: [columns] } - tableKey is alias or name
         this.joins = [];
         this.conditions = [];
         this.orderBy = [];
         this.groupBy = [];
         this.limit = null;
         this.offset = null;
+
+        // Table colors for visual identification
+        this.tableColors = [
+            { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },   // Blue
+            { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },   // Green
+            { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#ea580c' },   // Orange
+            { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' },   // Purple
+            { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },   // Pink
+            { bg: 'rgba(20, 184, 166, 0.15)', border: '#14b8a6', text: '#0d9488' },   // Teal
+            { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' },   // Amber
+            { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' },   // Indigo
+        ];
+        this.nextColorIndex = 0;
 
         // Query type state
         this.currentQueryType = 'select';
@@ -47,9 +63,6 @@ class QueryBuilder {
         this.queryHistory = new QueryHistory();
         this.queryExport = new QueryExport();
         this.lastResults = null;
-
-        // DISTINCT option
-        this.distinct = false;
 
         // Type-to-confirm instance
         this.typeToConfirm = typeToConfirm;
@@ -119,34 +132,26 @@ class QueryBuilder {
     }
 
     updateInsertSQLPreview(sql) {
-        const previewEl = document.querySelector('#insert-sql-preview code');
-        if (previewEl) {
-            previewEl.textContent = sql;
-            hljs.highlightElement(previewEl);
-        }
+        this.updateBottomPanelSQL(sql);
     }
 
     updateUpdateSQLPreview(sql) {
-        const previewEl = document.querySelector('#update-sql-preview code');
-        if (previewEl) {
-            previewEl.textContent = sql;
-            hljs.highlightElement(previewEl);
-        }
+        this.updateBottomPanelSQL(sql);
     }
 
     updateDeleteSQLPreview(sql) {
-        const previewEl = document.querySelector('#delete-sql-preview code');
-        if (previewEl) {
-            previewEl.textContent = sql;
-            hljs.highlightElement(previewEl);
-        }
+        this.updateBottomPanelSQL(sql);
     }
 
     updateAlterSQLPreview(sql) {
-        const previewEl = document.querySelector('#alter-sql-preview code');
-        if (previewEl) {
-            previewEl.textContent = sql;
-            hljs.highlightElement(previewEl);
+        this.updateBottomPanelSQL(sql);
+    }
+
+    updateBottomPanelSQL(sql) {
+        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
+        if (bottomPreviewEl) {
+            bottomPreviewEl.textContent = sql;
+            hljs.highlightElement(bottomPreviewEl);
         }
     }
 
@@ -176,7 +181,6 @@ class QueryBuilder {
         // Add controls
         document.getElementById('btn-add-join')?.addEventListener('click', () => this.addJoinRow());
         document.getElementById('btn-add-condition')?.addEventListener('click', () => this.addConditionRow());
-        document.getElementById('btn-add-orderby')?.addEventListener('click', () => this.addOrderByRow());
 
         // Limit/Offset
         document.getElementById('limit-input')?.addEventListener('input', (e) => {
@@ -188,11 +192,9 @@ class QueryBuilder {
             this.updateSQLPreview();
         });
 
-        // DISTINCT checkbox
-        document.getElementById('distinct-checkbox')?.addEventListener('change', (e) => {
-            this.distinct = e.target.checked;
-            this.updateSQLPreview();
-        });
+        // Select All/None buttons
+        document.getElementById('btn-select-all')?.addEventListener('click', () => this.selectAllColumns());
+        document.getElementById('btn-select-none')?.addEventListener('click', () => this.selectNoColumns());
 
         // Export buttons
         document.getElementById('btn-export-sql')?.addEventListener('click', () => this.exportSQL());
@@ -240,6 +242,240 @@ class QueryBuilder {
                 if (tableName) this.addTable(tableName);
             });
         }
+
+        // Drag and drop for INSERT/UPDATE/DELETE/ALTER table drop zones
+        this.setupTableDropZone('insert-table-drop', (tableName) => {
+            if (this.insertBuilder) {
+                this.insertBuilder.setTable(tableName);
+            }
+        });
+
+        this.setupTableDropZone('update-table-drop', (tableName) => {
+            if (this.updateBuilder) {
+                this.updateBuilder.setTable(tableName);
+            }
+        });
+
+        this.setupTableDropZone('delete-table-drop', (tableName) => {
+            if (this.deleteBuilder) {
+                this.deleteBuilder.setTable(tableName);
+            }
+        });
+
+        this.setupTableDropZone('alter-table-drop', (tableName) => {
+            if (this.alterBuilder) {
+                this.alterBuilder.setTable(tableName);
+            }
+        });
+
+        // Bottom panel tab switching
+        document.querySelectorAll('.bottom-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => this.switchBottomTab(e.target.closest('.bottom-tab').dataset.tab));
+        });
+
+        // Copy SQL button
+        document.getElementById('btn-copy-sql')?.addEventListener('click', () => this.copySQL());
+
+        // Saved Queries
+        this.initSavedQueries();
+    }
+
+    initSavedQueries() {
+        // Initialize saved queries panel
+        const savedQueriesPanel = document.getElementById('saved-queries-panel');
+        if (savedQueriesPanel) {
+            savedQueries.renderPanel(savedQueriesPanel);
+
+            // Set callback for loading queries
+            savedQueries.onLoadQuery = (query) => this.loadSavedQuery(query);
+        }
+
+        // Toggle saved queries sidebar
+        document.getElementById('btn-toggle-saved')?.addEventListener('click', () => this.toggleSavedQueries());
+        document.getElementById('btn-close-saved')?.addEventListener('click', () => this.toggleSavedQueries(false));
+
+        // Save query button
+        document.getElementById('btn-save-query')?.addEventListener('click', () => this.showSaveQueryModal());
+
+        // Save query modal events
+        document.getElementById('btn-cancel-save-query')?.addEventListener('click', () => this.hideSaveQueryModal());
+        document.getElementById('btn-cancel-save-query-footer')?.addEventListener('click', () => this.hideSaveQueryModal());
+        document.getElementById('btn-do-save-query')?.addEventListener('click', () => this.doSaveQuery());
+
+        // Close modal on backdrop click
+        const saveModal = document.getElementById('save-query-modal');
+        saveModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => this.hideSaveQueryModal());
+    }
+
+    toggleSavedQueries(show = null) {
+        const sidebar = document.getElementById('saved-queries-sidebar');
+        if (!sidebar) return;
+
+        if (show === null) {
+            sidebar.classList.toggle('active');
+        } else {
+            sidebar.classList.toggle('active', show);
+        }
+
+        // Refresh when opening
+        if (sidebar.classList.contains('active')) {
+            savedQueries.refreshPanel();
+        }
+    }
+
+    showSaveQueryModal() {
+        const sql = this.buildSQL();
+        if (!sql || sql === 'SELECT * FROM table_name;') {
+            toast.warning('Build a query first before saving');
+            return;
+        }
+
+        // Show SQL preview in modal
+        const previewEl = document.querySelector('#save-query-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+
+        // Clear form
+        document.getElementById('save-query-title').value = '';
+        document.getElementById('save-query-description').value = '';
+        document.getElementById('save-query-group').value = '';
+        document.getElementById('save-query-tags').value = '';
+        document.getElementById('save-query-favorite').checked = false;
+
+        // Populate groups datalist
+        savedQueries.populateGroupsDatalist();
+
+        // Show modal
+        const modal = document.getElementById('save-query-modal');
+        if (modal) {
+            modal.dataset.queryId = '';
+            modal.classList.add('active');
+            document.getElementById('save-query-title')?.focus();
+        }
+    }
+
+    hideSaveQueryModal() {
+        const modal = document.getElementById('save-query-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    async doSaveQuery() {
+        const sql = this.buildSQL();
+        const success = await savedQueries.handleSaveSubmit(sql, this.currentQueryType);
+        if (success) {
+            this.hideSaveQueryModal();
+        }
+    }
+
+    loadSavedQuery(query) {
+        // For now, we'll just load the SQL into the bottom panel
+        // A more complete implementation would parse the SQL and populate the visual builder
+        const sql = query.sql_query;
+
+        // Update SQL preview
+        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
+        if (bottomPreviewEl) {
+            bottomPreviewEl.textContent = sql;
+            hljs.highlightElement(bottomPreviewEl);
+        }
+
+        // Switch to SQL tab
+        this.switchBottomTab('sql-preview');
+
+        // Close the saved queries sidebar
+        this.toggleSavedQueries(false);
+
+        toast.success(`Loaded: ${query.title}`);
+    }
+
+    setupTableDropZone(elementId, callback) {
+        const dropZone = document.getElementById(elementId);
+        if (!dropZone) return;
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const tableName = e.dataTransfer.getData('text/plain');
+            if (tableName) {
+                callback(tableName);
+                this.renderDropZoneTable(dropZone, tableName);
+            }
+        });
+    }
+
+    handleTableDoubleClick(tableName) {
+        // Handle based on current query type
+        switch (this.currentQueryType) {
+            case 'select':
+                this.addTable(tableName);
+                break;
+            case 'insert':
+                if (this.insertBuilder) {
+                    this.insertBuilder.setTable(tableName);
+                    this.renderDropZoneTable(document.getElementById('insert-table-drop'), tableName);
+                }
+                break;
+            case 'update':
+                if (this.updateBuilder) {
+                    this.updateBuilder.setTable(tableName);
+                    this.renderDropZoneTable(document.getElementById('update-table-drop'), tableName);
+                }
+                break;
+            case 'delete':
+                if (this.deleteBuilder) {
+                    this.deleteBuilder.setTable(tableName);
+                    this.renderDropZoneTable(document.getElementById('delete-table-drop'), tableName);
+                }
+                break;
+            case 'alter':
+                if (this.alterBuilder) {
+                    this.alterBuilder.setTable(tableName);
+                    this.renderDropZoneTable(document.getElementById('alter-table-drop'), tableName);
+                }
+                break;
+            default:
+                this.addTable(tableName);
+        }
+    }
+
+    renderDropZoneTable(dropZone, tableName) {
+        dropZone.innerHTML = `
+            <div class="drop-zone-table">
+                <span class="table-name">${tableName}</span>
+                <button class="remove-btn">&times;</button>
+            </div>
+        `;
+        dropZone.classList.add('has-table');
+
+        dropZone.querySelector('.remove-btn').addEventListener('click', () => {
+            dropZone.innerHTML = '<div class="placeholder">Drag a table here or double-click from sidebar</div>';
+            dropZone.classList.remove('has-table');
+
+            // Clear the builder's table
+            const builderId = dropZone.id.replace('-table-drop', '');
+            if (builderId === 'insert' && this.insertBuilder) {
+                this.insertBuilder.clear();
+            } else if (builderId === 'update' && this.updateBuilder) {
+                this.updateBuilder.clear();
+            } else if (builderId === 'delete' && this.deleteBuilder) {
+                this.deleteBuilder.clear();
+            } else if (builderId === 'alter' && this.alterBuilder) {
+                this.alterBuilder.clear();
+            }
+        });
     }
 
     switchQueryType(type) {
@@ -293,6 +529,37 @@ class QueryBuilder {
             if (content.id === `tab-${tabId}`) {
                 content.classList.add('active');
             }
+        });
+    }
+
+    switchBottomTab(tabId) {
+        // Update tab buttons
+        document.querySelectorAll('.bottom-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabId);
+        });
+
+        // Update content panels
+        document.querySelectorAll('.bottom-panel-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        const targetContent = document.getElementById(`bottom-${tabId}`);
+        if (targetContent) {
+            targetContent.classList.add('active');
+        }
+    }
+
+    copySQL() {
+        const sql = this.buildSQL();
+        if (!sql || sql === 'SELECT * FROM table_name;') {
+            toast.warning('No query to copy');
+            return;
+        }
+
+        navigator.clipboard.writeText(sql).then(() => {
+            toast.success('SQL copied to clipboard');
+        }).catch(() => {
+            toast.error('Failed to copy SQL');
         });
     }
 
@@ -383,7 +650,7 @@ class QueryBuilder {
 
             header.addEventListener('dblclick', () => {
                 const tableName = header.closest('.table-item').dataset.table;
-                this.addTable(tableName);
+                this.handleTableDoubleClick(tableName);
             });
         });
 
@@ -407,55 +674,138 @@ class QueryBuilder {
         });
     }
 
-    addTable(tableName) {
-        if (this.selectedTables.includes(tableName)) return;
+    addTable(tableName, forceAdd = false) {
+        // Check if table already exists (unless forcing for self-join)
+        const existingCount = this.selectedTables.filter(t => t.name === tableName).length;
+        if (existingCount > 0 && !forceAdd) {
+            // Ask if they want to add again for self-join
+            if (!confirm(`"${tableName}" is already added. Add again for a self-join?`)) {
+                return;
+            }
+        }
 
-        this.selectedTables.push(tableName);
+        // Generate alias for duplicate tables
+        let alias = null;
+        if (existingCount > 0) {
+            alias = `${tableName}_${existingCount + 1}`;
+        }
 
-        // Initialize with all columns selected
+        const colorIndex = this.nextColorIndex;
+        this.nextColorIndex = (this.nextColorIndex + 1) % this.tableColors.length;
+
+        const tableEntry = {
+            name: tableName,
+            alias: alias,
+            colorIndex: colorIndex
+        };
+
+        this.selectedTables.push(tableEntry);
+
+        // Initialize with all columns selected using the key (alias or name)
+        const tableKey = alias || tableName;
         const table = this.schema.tables.find(t => t.name === tableName);
         if (table) {
-            this.selectedColumns[tableName] = table.columns.map(c => c.name);
+            this.selectedColumns[tableKey] = table.columns.map(c => c.name);
         }
 
         this.renderSelectedTables();
+        this.renderColumns();
         this.renderGroupBy();
+        this.updateJoinSuggestions();
         this.updateSQLPreview();
     }
 
-    removeTable(tableName) {
-        this.selectedTables = this.selectedTables.filter(t => t !== tableName);
-        delete this.selectedColumns[tableName];
+    getTableKey(tableEntry) {
+        return tableEntry.alias || tableEntry.name;
+    }
 
-        // Remove joins referencing this table
-        this.joins = this.joins.filter(j => j.leftTable !== tableName && j.rightTable !== tableName);
+    setTableAlias(index, newAlias) {
+        const tableEntry = this.selectedTables[index];
+        if (!tableEntry) return;
 
-        // Remove conditions referencing this table
-        this.conditions = this.conditions.filter(c => !c.column.startsWith(tableName + '.'));
+        const oldKey = this.getTableKey(tableEntry);
+        tableEntry.alias = newAlias || null;
+        const newKey = this.getTableKey(tableEntry);
+
+        // Update selectedColumns key
+        if (oldKey !== newKey && this.selectedColumns[oldKey]) {
+            this.selectedColumns[newKey] = this.selectedColumns[oldKey];
+            delete this.selectedColumns[oldKey];
+        }
+
+        // Update joins referencing this table
+        this.joins.forEach(join => {
+            if (join.leftTable === oldKey) join.leftTable = newKey;
+            if (join.rightTable === oldKey) join.rightTable = newKey;
+        });
+
+        // Update conditions referencing this table
+        this.conditions.forEach(cond => {
+            if (cond.column.startsWith(oldKey + '.')) {
+                cond.column = newKey + '.' + cond.column.split('.')[1];
+            }
+        });
 
         this.renderSelectedTables();
+        this.renderColumns();
         this.renderJoins();
         this.renderConditions();
         this.renderGroupBy();
         this.updateSQLPreview();
     }
 
+    removeTable(index) {
+        const tableEntry = this.selectedTables[index];
+        if (!tableEntry) return;
+
+        const tableKey = this.getTableKey(tableEntry);
+
+        this.selectedTables.splice(index, 1);
+        delete this.selectedColumns[tableKey];
+
+        // Remove joins referencing this table
+        this.joins = this.joins.filter(j => j.leftTable !== tableKey && j.rightTable !== tableKey);
+
+        // Remove conditions referencing this table
+        this.conditions = this.conditions.filter(c => !c.column.startsWith(tableKey + '.'));
+
+        // Remove from groupBy
+        this.groupBy = this.groupBy.filter(g => !g.startsWith(tableKey + '.'));
+
+        // Remove from orderBy
+        this.orderBy = this.orderBy.filter(o => !o.column.startsWith(tableKey + '.'));
+
+        this.renderSelectedTables();
+        this.renderColumns();
+        this.renderJoins();
+        this.renderConditions();
+        this.renderGroupBy();
+        this.updateJoinSuggestions();
+        this.updateSQLPreview();
+    }
+
     toggleColumn(tableName, columnName) {
-        if (!this.selectedTables.includes(tableName)) {
+        // Find the table entry by name
+        const tableEntry = this.selectedTables.find(t => t.name === tableName);
+        if (!tableEntry) {
             this.addTable(tableName);
+            return; // addTable already adds all columns
         }
 
-        if (!this.selectedColumns[tableName]) {
-            this.selectedColumns[tableName] = [];
+        const tableKey = this.getTableKey(tableEntry);
+        if (!this.selectedColumns[tableKey]) {
+            this.selectedColumns[tableKey] = [];
         }
 
-        const index = this.selectedColumns[tableName].indexOf(columnName);
+        const index = this.selectedColumns[tableKey].indexOf(columnName);
         if (index === -1) {
-            this.selectedColumns[tableName].push(columnName);
+            this.selectedColumns[tableKey].push(columnName);
         } else {
-            this.selectedColumns[tableName].splice(index, 1);
+            this.selectedColumns[tableKey].splice(index, 1);
         }
 
+        this.renderColumns();
+        this.renderGroupBy();
         this.updateSQLPreview();
     }
 
@@ -463,44 +813,264 @@ class QueryBuilder {
         const container = document.getElementById('selected-tables');
 
         if (!this.selectedTables.length) {
-            container.innerHTML = '<div class="placeholder">Drag tables here or click to add</div>';
+            container.innerHTML = '<div class="placeholder">Drag tables here or double-click from sidebar</div>';
             return;
         }
 
-        container.innerHTML = this.selectedTables.map(tableName => `
-            <div class="selected-table" data-table="${tableName}">
-                ${tableName}
-                <button class="remove-btn" data-table="${tableName}">&times;</button>
-            </div>
-        `).join('');
+        container.innerHTML = this.selectedTables.map((tableEntry, index) => {
+            const color = this.tableColors[tableEntry.colorIndex];
+            const displayName = tableEntry.alias
+                ? `${tableEntry.name} AS ${tableEntry.alias}`
+                : tableEntry.name;
+
+            return `
+                <div class="selected-table" data-index="${index}"
+                     style="background: ${color.bg}; border-color: ${color.border}; color: ${color.text}">
+                    <span class="table-display-name">${displayName}</span>
+                    <input type="text" class="alias-input" placeholder="alias"
+                           value="${tableEntry.alias || ''}"
+                           style="display: none; color: ${color.text}; border-color: ${color.border}">
+                    <button class="edit-alias-btn" title="Set alias">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="remove-btn" data-index="${index}">&times;</button>
+                </div>
+            `;
+        }).join('');
+
+        // Bind events
+        container.querySelectorAll('.selected-table').forEach((el, index) => {
+            const aliasInput = el.querySelector('.alias-input');
+            const displayName = el.querySelector('.table-display-name');
+            const editBtn = el.querySelector('.edit-alias-btn');
+
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                displayName.style.display = 'none';
+                aliasInput.style.display = 'inline-block';
+                aliasInput.focus();
+                aliasInput.select();
+            });
+
+            aliasInput.addEventListener('blur', () => {
+                const newAlias = aliasInput.value.trim();
+                this.setTableAlias(index, newAlias);
+            });
+
+            aliasInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    aliasInput.blur();
+                } else if (e.key === 'Escape') {
+                    aliasInput.value = this.selectedTables[index].alias || '';
+                    aliasInput.blur();
+                }
+            });
+        });
 
         container.querySelectorAll('.remove-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.removeTable(btn.dataset.table);
+                this.removeTable(parseInt(btn.dataset.index));
             });
         });
     }
 
-    addJoinRow() {
+    updateJoinSuggestions() {
+        const container = document.getElementById('join-suggestions');
+        if (!container) return;
+
         if (this.selectedTables.length < 2) {
-            alert('Add at least 2 tables to create a join');
+            container.innerHTML = '';
             return;
         }
 
+        const suggestions = this.findJoinSuggestions();
+
+        if (!suggestions.length) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="suggestions-header">Suggested joins based on foreign keys:</div>
+            ${suggestions.map((s, i) => `
+                <div class="join-suggestion" data-index="${i}">
+                    <span class="suggestion-text">
+                        ${s.leftTable}.${s.leftColumn} = ${s.rightTable}.${s.rightColumn}
+                    </span>
+                    <button class="btn-use-suggestion" data-index="${i}">+ Add</button>
+                </div>
+            `).join('')}
+        `;
+
+        container.querySelectorAll('.btn-use-suggestion').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.index);
+                const suggestion = suggestions[idx];
+                this.joins.push({
+                    type: 'INNER',
+                    leftTable: suggestion.leftTable,
+                    leftColumn: suggestion.leftColumn,
+                    rightTable: suggestion.rightTable,
+                    rightColumn: suggestion.rightColumn
+                });
+                this.renderJoins();
+                this.updateSQLPreview();
+                // Remove used suggestion
+                btn.closest('.join-suggestion').remove();
+            });
+        });
+    }
+
+    findJoinSuggestions() {
+        const suggestions = [];
+
+        // Check each pair of selected tables for FK relationships
+        for (let i = 0; i < this.selectedTables.length; i++) {
+            for (let j = i + 1; j < this.selectedTables.length; j++) {
+                const table1 = this.selectedTables[i];
+                const table2 = this.selectedTables[j];
+
+                const table1Key = this.getTableKey(table1);
+                const table2Key = this.getTableKey(table2);
+
+                const table1Schema = this.schema.tables.find(t => t.name === table1.name);
+                const table2Schema = this.schema.tables.find(t => t.name === table2.name);
+
+                if (!table1Schema || !table2Schema) continue;
+
+                // Check table1's FKs pointing to table2
+                table1Schema.columns.forEach(col => {
+                    if (col.foreign_key && col.foreign_key.table === table2.name) {
+                        // Check if this join already exists
+                        const exists = this.joins.some(j =>
+                            (j.leftTable === table1Key && j.leftColumn === col.name &&
+                             j.rightTable === table2Key && j.rightColumn === col.foreign_key.column) ||
+                            (j.leftTable === table2Key && j.leftColumn === col.foreign_key.column &&
+                             j.rightTable === table1Key && j.rightColumn === col.name)
+                        );
+
+                        if (!exists) {
+                            suggestions.push({
+                                leftTable: table1Key,
+                                leftColumn: col.name,
+                                rightTable: table2Key,
+                                rightColumn: col.foreign_key.column
+                            });
+                        }
+                    }
+                });
+
+                // Check table2's FKs pointing to table1
+                table2Schema.columns.forEach(col => {
+                    if (col.foreign_key && col.foreign_key.table === table1.name) {
+                        const exists = this.joins.some(j =>
+                            (j.leftTable === table2Key && j.leftColumn === col.name &&
+                             j.rightTable === table1Key && j.rightColumn === col.foreign_key.column) ||
+                            (j.leftTable === table1Key && j.leftColumn === col.foreign_key.column &&
+                             j.rightTable === table2Key && j.rightColumn === col.name)
+                        );
+
+                        if (!exists) {
+                            suggestions.push({
+                                leftTable: table2Key,
+                                leftColumn: col.name,
+                                rightTable: table1Key,
+                                rightColumn: col.foreign_key.column
+                            });
+                        }
+                    }
+                });
+
+                // Also check for matching column names (common pattern: id matches table_id)
+                const pkCol1 = table1Schema.columns.find(c => c.key_type === 'PRI');
+                const pkCol2 = table2Schema.columns.find(c => c.key_type === 'PRI');
+
+                if (pkCol1) {
+                    // Look for table1_id in table2
+                    const fkPattern = `${table1.name}_${pkCol1.name}`;
+                    const matchingCol = table2Schema.columns.find(c =>
+                        c.name.toLowerCase() === fkPattern.toLowerCase()
+                    );
+                    if (matchingCol) {
+                        const exists = this.joins.some(j =>
+                            (j.leftTable === table1Key && j.leftColumn === pkCol1.name &&
+                             j.rightTable === table2Key && j.rightColumn === matchingCol.name)
+                        );
+                        if (!exists && !suggestions.some(s =>
+                            s.leftTable === table1Key && s.leftColumn === pkCol1.name &&
+                            s.rightTable === table2Key && s.rightColumn === matchingCol.name
+                        )) {
+                            suggestions.push({
+                                leftTable: table1Key,
+                                leftColumn: pkCol1.name,
+                                rightTable: table2Key,
+                                rightColumn: matchingCol.name
+                            });
+                        }
+                    }
+                }
+
+                if (pkCol2) {
+                    const fkPattern = `${table2.name}_${pkCol2.name}`;
+                    const matchingCol = table1Schema.columns.find(c =>
+                        c.name.toLowerCase() === fkPattern.toLowerCase()
+                    );
+                    if (matchingCol) {
+                        const exists = this.joins.some(j =>
+                            (j.leftTable === table2Key && j.leftColumn === pkCol2.name &&
+                             j.rightTable === table1Key && j.rightColumn === matchingCol.name)
+                        );
+                        if (!exists && !suggestions.some(s =>
+                            s.leftTable === table2Key && s.leftColumn === pkCol2.name &&
+                            s.rightTable === table1Key && s.rightColumn === matchingCol.name
+                        )) {
+                            suggestions.push({
+                                leftTable: table2Key,
+                                leftColumn: pkCol2.name,
+                                rightTable: table1Key,
+                                rightColumn: matchingCol.name
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        return suggestions;
+    }
+
+    addJoinRow() {
+        if (this.selectedTables.length < 2) {
+            toast.warning('Add at least 2 tables to create a join');
+            return;
+        }
+
+        const leftTableKey = this.getTableKey(this.selectedTables[0]);
+        const rightTableKey = this.getTableKey(this.selectedTables[1]);
+
         this.joins.push({
             type: 'INNER',
-            leftTable: this.selectedTables[0],
+            leftTable: leftTableKey,
             leftColumn: '',
-            rightTable: this.selectedTables[1],
+            rightTable: rightTableKey,
             rightColumn: ''
         });
 
         this.renderJoins();
+        this.updateJoinSuggestions();
+    }
+
+    getTableKeys() {
+        return this.selectedTables.map(t => this.getTableKey(t));
     }
 
     renderJoins() {
         const container = document.getElementById('joins-container');
+        const tableKeys = this.getTableKeys();
 
         container.innerHTML = this.joins.map((join, index) => `
             <div class="join-row" data-index="${index}">
@@ -510,17 +1080,17 @@ class QueryBuilder {
                     <option value="RIGHT" ${join.type === 'RIGHT' ? 'selected' : ''}>RIGHT JOIN</option>
                 </select>
                 <select class="left-table">
-                    ${this.selectedTables.map(t => `<option value="${t}" ${join.leftTable === t ? 'selected' : ''}>${t}</option>`).join('')}
+                    ${tableKeys.map(t => `<option value="${t}" ${join.leftTable === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
                 <select class="left-column">
-                    ${this.getColumnsForTable(join.leftTable).map(c => `<option value="${c}" ${join.leftColumn === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    ${this.getColumnsForTableKey(join.leftTable).map(c => `<option value="${c}" ${join.leftColumn === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
                 <span>=</span>
                 <select class="right-table">
-                    ${this.selectedTables.map(t => `<option value="${t}" ${join.rightTable === t ? 'selected' : ''}>${t}</option>`).join('')}
+                    ${tableKeys.map(t => `<option value="${t}" ${join.rightTable === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
                 <select class="right-column">
-                    ${this.getColumnsForTable(join.rightTable).map(c => `<option value="${c}" ${join.rightColumn === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    ${this.getColumnsForTableKey(join.rightTable).map(c => `<option value="${c}" ${join.rightColumn === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
                 <button class="remove-btn">&times;</button>
             </div>
@@ -559,7 +1129,7 @@ class QueryBuilder {
 
     addConditionRow() {
         if (!this.selectedTables.length) {
-            alert('Add at least one table first');
+            toast.warning('Add at least one table first');
             return;
         }
 
@@ -638,53 +1208,219 @@ class QueryBuilder {
         });
     }
 
-    addOrderByRow() {
-        if (!this.selectedTables.length) {
-            alert('Add at least one table first');
-            return;
+    addToOrderBy(column) {
+        if (!this.orderBy.find(o => o.column === column)) {
+            this.orderBy.push({
+                column: column,
+                direction: 'ASC'
+            });
+            this.renderOrderBy();
+            this.updateSQLPreview();
         }
+    }
 
-        this.orderBy.push({
-            column: '',
-            direction: 'ASC'
-        });
-
+    removeFromOrderBy(column) {
+        this.orderBy = this.orderBy.filter(o => o.column !== column);
         this.renderOrderBy();
+        this.updateSQLPreview();
+    }
+
+    toggleOrderByDirection(column) {
+        const order = this.orderBy.find(o => o.column === column);
+        if (order) {
+            order.direction = order.direction === 'ASC' ? 'DESC' : 'ASC';
+            this.renderOrderBy();
+            this.updateSQLPreview();
+        }
     }
 
     renderOrderBy() {
-        const container = document.getElementById('orderby-container');
-        const allColumns = this.getAllColumns();
+        const selectedContainer = document.getElementById('orderby-selected');
+        const availableContainer = document.getElementById('orderby-available');
 
-        container.innerHTML = this.orderBy.map((order, index) => `
-            <div class="orderby-row" data-index="${index}">
-                <select class="column">
-                    <option value="">Select column</option>
-                    ${allColumns.map(c => `<option value="${c}" ${order.column === c ? 'selected' : ''}>${c}</option>`).join('')}
-                </select>
-                <select class="direction">
-                    <option value="ASC" ${order.direction === 'ASC' ? 'selected' : ''}>ASC</option>
-                    <option value="DESC" ${order.direction === 'DESC' ? 'selected' : ''}>DESC</option>
-                </select>
-                <button class="remove-btn">&times;</button>
-            </div>
-        `).join('');
+        if (!selectedContainer || !availableContainer) return;
 
-        container.querySelectorAll('.orderby-row').forEach((row, index) => {
-            row.querySelector('.column').addEventListener('change', (e) => {
-                this.orderBy[index].column = e.target.value;
-                this.updateSQLPreview();
+        const allColumnsWithColors = this.getAllColumnsWithColors();
+
+        // Helper to get color for a column
+        const getColorForColumn = (colValue) => {
+            const found = allColumnsWithColors.find(c => c.value === colValue);
+            return found ? found.color : null;
+        };
+
+        // Render selected ORDER BY columns as tags with direction toggle
+        if (this.orderBy.length === 0) {
+            selectedContainer.innerHTML = '<span class="placeholder">Click columns to add</span>';
+        } else {
+            selectedContainer.innerHTML = this.orderBy.map(order => {
+                const color = getColorForColumn(order.column);
+                const style = color
+                    ? `background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text}`
+                    : '';
+                const arrowIcon = order.direction === 'ASC'
+                    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
+                    : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
+                return `
+                    <span class="orderby-tag" data-column="${order.column}" style="${style}">
+                        ${order.column}
+                        <button class="direction-toggle" data-column="${order.column}" title="Toggle direction">${arrowIcon}</button>
+                        <button class="tag-remove" data-column="${order.column}">&times;</button>
+                    </span>
+                `;
+            }).join('');
+
+            // Bind direction toggle events
+            selectedContainer.querySelectorAll('.direction-toggle').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleOrderByDirection(btn.dataset.column);
+                });
             });
-            row.querySelector('.direction').addEventListener('change', (e) => {
-                this.orderBy[index].direction = e.target.value;
-                this.updateSQLPreview();
+
+            // Bind remove events
+            selectedContainer.querySelectorAll('.tag-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeFromOrderBy(btn.dataset.column);
+                });
             });
-            row.querySelector('.remove-btn').addEventListener('click', () => {
-                this.orderBy.splice(index, 1);
-                this.renderOrderBy();
-                this.updateSQLPreview();
+        }
+
+        // Render available columns (excluding already selected)
+        const selectedColumns = this.orderBy.map(o => o.column);
+        const availableColumns = allColumnsWithColors.filter(c => !selectedColumns.includes(c.value));
+
+        if (availableColumns.length === 0 && allColumnsWithColors.length > 0) {
+            availableContainer.innerHTML = '<span class="placeholder-sm">All columns added</span>';
+        } else if (allColumnsWithColors.length === 0) {
+            availableContainer.innerHTML = '';
+        } else {
+            availableContainer.innerHTML = availableColumns.map(col => {
+                const style = `background: ${col.color.bg}; border: 1px solid ${col.color.border}; color: ${col.color.text}`;
+                return `<span class="orderby-option" data-column="${col.value}" style="${style}">${col.value}</span>`;
+            }).join('');
+
+            // Bind click events to add
+            availableContainer.querySelectorAll('.orderby-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    this.addToOrderBy(option.dataset.column);
+                });
+            });
+        }
+    }
+
+    selectAllColumns() {
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            const allCols = this.getColumnsForTable(tableEntry.name);
+            this.selectedColumns[tableKey] = [...allCols];
+        });
+        this.renderColumns();
+        this.updateSQLPreview();
+    }
+
+    selectNoColumns() {
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            this.selectedColumns[tableKey] = [];
+        });
+        this.renderColumns();
+        this.updateSQLPreview();
+    }
+
+    addColumn(tableKey, columnName) {
+        if (!this.selectedColumns[tableKey]) {
+            this.selectedColumns[tableKey] = [];
+        }
+        if (!this.selectedColumns[tableKey].includes(columnName)) {
+            this.selectedColumns[tableKey].push(columnName);
+            this.renderColumns();
+            this.renderGroupBy();
+            this.updateSQLPreview();
+        }
+    }
+
+    removeColumn(tableKey, columnName) {
+        if (this.selectedColumns[tableKey]) {
+            this.selectedColumns[tableKey] = this.selectedColumns[tableKey].filter(c => c !== columnName);
+            this.renderColumns();
+            this.renderGroupBy();
+            this.updateSQLPreview();
+        }
+    }
+
+    renderColumns() {
+        const selectedContainer = document.getElementById('columns-selected');
+        const availableContainer = document.getElementById('columns-available');
+
+        if (!selectedContainer || !availableContainer) return;
+
+        // Get all columns with color info
+        const allColumnsWithColors = [];
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            const color = this.tableColors[tableEntry.colorIndex];
+            const tableCols = this.getColumnsForTable(tableEntry.name);
+            tableCols.forEach(col => {
+                const isSelected = this.selectedColumns[tableKey]?.includes(col);
+                allColumnsWithColors.push({
+                    tableKey,
+                    column: col,
+                    fullName: `${tableKey}.${col}`,
+                    color,
+                    isSelected
+                });
             });
         });
+
+        const selectedCols = allColumnsWithColors.filter(c => c.isSelected);
+        const availableCols = allColumnsWithColors.filter(c => !c.isSelected);
+
+        // Render selected columns
+        if (selectedCols.length === 0) {
+            if (this.selectedTables.length === 0) {
+                selectedContainer.innerHTML = '<span class="placeholder">Add tables to select columns</span>';
+            } else {
+                selectedContainer.innerHTML = '<span class="placeholder">Click columns below to add (or use "All")</span>';
+            }
+        } else {
+            selectedContainer.innerHTML = selectedCols.map(col => {
+                const style = `background: ${col.color.bg}; border: 1px solid ${col.color.border}; color: ${col.color.text}`;
+                return `
+                    <span class="column-tag" data-table="${col.tableKey}" data-column="${col.column}" style="${style}">
+                        ${col.fullName}
+                        <button class="tag-remove" data-table="${col.tableKey}" data-column="${col.column}">&times;</button>
+                    </span>
+                `;
+            }).join('');
+
+            // Bind remove events
+            selectedContainer.querySelectorAll('.tag-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeColumn(btn.dataset.table, btn.dataset.column);
+                });
+            });
+        }
+
+        // Render available columns
+        if (availableCols.length === 0 && allColumnsWithColors.length > 0) {
+            availableContainer.innerHTML = '<span class="placeholder-sm">All columns selected</span>';
+        } else if (allColumnsWithColors.length === 0) {
+            availableContainer.innerHTML = '';
+        } else {
+            availableContainer.innerHTML = availableCols.map(col => {
+                const style = `background: ${col.color.bg}; border: 1px solid ${col.color.border}; color: ${col.color.text}`;
+                return `<span class="column-option" data-table="${col.tableKey}" data-column="${col.column}" style="${style}">${col.fullName}</span>`;
+            }).join('');
+
+            // Bind click events to add
+            availableContainer.querySelectorAll('.column-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    this.addColumn(option.dataset.table, option.dataset.column);
+                });
+            });
+        }
     }
 
     addToGroupBy(column) {
@@ -704,18 +1440,30 @@ class QueryBuilder {
     renderGroupBy() {
         const selectedContainer = document.getElementById('groupby-selected');
         const availableContainer = document.getElementById('groupby-available');
-        const allColumns = this.getAllColumns();
+        const allColumnsWithColors = this.getAllColumnsWithColors();
 
-        // Render selected columns as tags
+        // Helper to get color for a column
+        const getColorForColumn = (colValue) => {
+            const found = allColumnsWithColors.find(c => c.value === colValue);
+            return found ? found.color : null;
+        };
+
+        // Render selected columns as tags with colors
         if (this.groupBy.length === 0) {
             selectedContainer.innerHTML = '<span class="placeholder">Click columns to add</span>';
         } else {
-            selectedContainer.innerHTML = this.groupBy.map(col => `
-                <span class="groupby-tag" data-column="${col}">
-                    ${col}
-                    <button class="tag-remove" data-column="${col}">&times;</button>
-                </span>
-            `).join('');
+            selectedContainer.innerHTML = this.groupBy.map(col => {
+                const color = getColorForColumn(col);
+                const style = color
+                    ? `background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text}`
+                    : '';
+                return `
+                    <span class="groupby-tag" data-column="${col}" style="${style}">
+                        ${col}
+                        <button class="tag-remove" data-column="${col}">&times;</button>
+                    </span>
+                `;
+            }).join('');
 
             // Bind remove events
             selectedContainer.querySelectorAll('.tag-remove').forEach(btn => {
@@ -726,17 +1474,18 @@ class QueryBuilder {
             });
         }
 
-        // Render available columns (excluding already selected)
-        const availableColumns = allColumns.filter(c => !this.groupBy.includes(c));
+        // Render available columns (excluding already selected) with colors
+        const availableColumns = allColumnsWithColors.filter(c => !this.groupBy.includes(c.value));
 
-        if (availableColumns.length === 0 && allColumns.length > 0) {
+        if (availableColumns.length === 0 && allColumnsWithColors.length > 0) {
             availableContainer.innerHTML = '<span class="placeholder-sm">All columns added</span>';
-        } else if (allColumns.length === 0) {
+        } else if (allColumnsWithColors.length === 0) {
             availableContainer.innerHTML = '';
         } else {
-            availableContainer.innerHTML = availableColumns.map(col => `
-                <span class="groupby-option" data-column="${col}">${col}</span>
-            `).join('');
+            availableContainer.innerHTML = availableColumns.map(col => {
+                const style = `background: ${col.color.bg}; border: 1px solid ${col.color.border}; color: ${col.color.text}`;
+                return `<span class="groupby-option" data-column="${col.value}" style="${style}">${col.value}</span>`;
+            }).join('');
 
             // Bind click events to add
             availableContainer.querySelectorAll('.groupby-option').forEach(option => {
@@ -752,12 +1501,40 @@ class QueryBuilder {
         return table ? table.columns.map(c => c.name) : [];
     }
 
+    // Get columns for a table key (which may be an alias)
+    getColumnsForTableKey(tableKey) {
+        // Find the table entry by key (alias or name)
+        const tableEntry = this.selectedTables.find(t => this.getTableKey(t) === tableKey);
+        if (!tableEntry) return [];
+        return this.getColumnsForTable(tableEntry.name);
+    }
+
     getAllColumns() {
         const columns = [];
-        this.selectedTables.forEach(tableName => {
-            const tableCols = this.selectedColumns[tableName] || this.getColumnsForTable(tableName);
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            const tableCols = this.selectedColumns[tableKey] || this.getColumnsForTable(tableEntry.name);
             tableCols.forEach(col => {
-                columns.push(`${tableName}.${col}`);
+                columns.push(`${tableKey}.${col}`);
+            });
+        });
+        return columns;
+    }
+
+    // Get columns with color info for display
+    getAllColumnsWithColors() {
+        const columns = [];
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            const color = this.tableColors[tableEntry.colorIndex];
+            const tableCols = this.selectedColumns[tableKey] || this.getColumnsForTable(tableEntry.name);
+            tableCols.forEach(col => {
+                columns.push({
+                    value: `${tableKey}.${col}`,
+                    table: tableKey,
+                    column: col,
+                    color: color
+                });
             });
         });
         return columns;
@@ -770,30 +1547,54 @@ class QueryBuilder {
 
         let sql = 'SELECT ';
 
-        // DISTINCT
-        if (this.distinct) {
-            sql += 'DISTINCT ';
-        }
-
         // Columns
         const columns = [];
-        this.selectedTables.forEach(tableName => {
-            const tableCols = this.selectedColumns[tableName] || [];
+        this.selectedTables.forEach(tableEntry => {
+            const tableKey = this.getTableKey(tableEntry);
+            const tableCols = this.selectedColumns[tableKey] || [];
             if (tableCols.length === 0) {
-                columns.push(`${tableName}.*`);
+                columns.push(`${tableKey}.*`);
             } else {
-                tableCols.forEach(col => columns.push(`${tableName}.${col}`));
+                tableCols.forEach(col => columns.push(`${tableKey}.${col}`));
             }
         });
         sql += columns.join(', ') || '*';
 
-        // FROM
-        sql += `\nFROM ${this.selectedTables[0]}`;
+        // FROM with alias support
+        const firstTable = this.selectedTables[0];
+        const firstTableKey = this.getTableKey(firstTable);
+        sql += `\nFROM ${firstTable.name}`;
+        if (firstTable.alias) {
+            sql += ` AS ${firstTable.alias}`;
+        }
 
-        // JOINs
+        // JOINs with alias support
+        const joinedTables = new Set([firstTableKey]);
         this.joins.forEach(join => {
             if (join.leftColumn && join.rightColumn) {
-                sql += `\n${join.type} JOIN ${join.rightTable} ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
+                // Find which table is new (not in joinedTables)
+                const rightTableEntry = this.selectedTables.find(t => this.getTableKey(t) === join.rightTable);
+                if (rightTableEntry && !joinedTables.has(join.rightTable)) {
+                    sql += `\n${join.type} JOIN ${rightTableEntry.name}`;
+                    if (rightTableEntry.alias) {
+                        sql += ` AS ${rightTableEntry.alias}`;
+                    }
+                    sql += ` ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
+                    joinedTables.add(join.rightTable);
+                } else if (!joinedTables.has(join.leftTable)) {
+                    const leftTableEntry = this.selectedTables.find(t => this.getTableKey(t) === join.leftTable);
+                    if (leftTableEntry) {
+                        sql += `\n${join.type} JOIN ${leftTableEntry.name}`;
+                        if (leftTableEntry.alias) {
+                            sql += ` AS ${leftTableEntry.alias}`;
+                        }
+                        sql += ` ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
+                        joinedTables.add(join.leftTable);
+                    }
+                } else {
+                    // Both tables already joined, just add the ON condition
+                    sql += `\n${join.type} JOIN ${join.rightTable} ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
+                }
             }
         });
 
@@ -851,9 +1652,20 @@ class QueryBuilder {
 
     updateSQLPreview() {
         const sql = this.buildSQL();
+
+        // Update inline SQL preview (in visual builder)
         const previewEl = document.querySelector('#sql-preview code');
-        previewEl.textContent = sql;
-        hljs.highlightElement(previewEl);
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+
+        // Update bottom panel SQL preview
+        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
+        if (bottomPreviewEl) {
+            bottomPreviewEl.textContent = sql;
+            hljs.highlightElement(bottomPreviewEl);
+        }
     }
 
     async runQuery() {
@@ -922,7 +1734,7 @@ class QueryBuilder {
             this.runExplain(sql);
 
         } catch (error) {
-            alert('Query error: ' + error.message);
+            toast.error('Query error: ' + error.message);
             console.error(error);
         }
     }
@@ -933,12 +1745,12 @@ class QueryBuilder {
         const data = this.insertBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
         if (!data.rows.length) {
-            alert('Please add at least one row of data');
+            toast.warning('Please add at least one row of data');
             return;
         }
 
@@ -959,7 +1771,7 @@ class QueryBuilder {
             this.displayInsertResult(result.data);
 
         } catch (error) {
-            alert('Insert error: ' + error.message);
+            toast.error('Insert error: ' + error.message);
             console.error(error);
         }
     }
@@ -994,12 +1806,12 @@ class QueryBuilder {
         const data = this.updateBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
         if (Object.keys(data.set).length === 0) {
-            alert('Please select at least one column to update');
+            toast.warning('Please select at least one column to update');
             return;
         }
 
@@ -1020,7 +1832,7 @@ class QueryBuilder {
             this.displayUpdatePreview(result.data);
 
         } catch (error) {
-            alert('Preview error: ' + error.message);
+            toast.error('Preview error: ' + error.message);
             console.error(error);
         }
     }
@@ -1031,12 +1843,12 @@ class QueryBuilder {
         const data = this.updateBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
         if (Object.keys(data.set).length === 0) {
-            alert('Please select at least one column to update');
+            toast.warning('Please select at least one column to update');
             return;
         }
 
@@ -1067,7 +1879,7 @@ class QueryBuilder {
             this.displayUpdateResult(result.data);
 
         } catch (error) {
-            alert('Update error: ' + error.message);
+            toast.error('Update error: ' + error.message);
             console.error(error);
         }
     }
@@ -1128,7 +1940,7 @@ class QueryBuilder {
         const data = this.deleteBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
@@ -1149,7 +1961,7 @@ class QueryBuilder {
             this.displayDeletePreview(result.data);
 
         } catch (error) {
-            alert('Preview error: ' + error.message);
+            toast.error('Preview error: ' + error.message);
             console.error(error);
         }
     }
@@ -1160,7 +1972,7 @@ class QueryBuilder {
         const data = this.deleteBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
@@ -1195,7 +2007,7 @@ class QueryBuilder {
             this.displayDeleteResult(result.data);
 
         } catch (error) {
-            alert('Delete error: ' + error.message);
+            toast.error('Delete error: ' + error.message);
             console.error(error);
         }
     }
@@ -1281,12 +2093,12 @@ class QueryBuilder {
         const data = this.alterBuilder.getData();
 
         if (!data.table) {
-            alert('Please select a table');
+            toast.warning('Please select a table');
             return;
         }
 
         if (!data.operations.length) {
-            alert('Please add at least one operation');
+            toast.warning('Please add at least one operation');
             return;
         }
 
@@ -1326,7 +2138,7 @@ class QueryBuilder {
             this.alterBuilder.clear();
 
         } catch (error) {
-            alert('ALTER error: ' + error.message);
+            toast.error('ALTER error: ' + error.message);
             console.error(error);
         }
     }
@@ -1378,9 +2190,15 @@ class QueryBuilder {
         const noResults = document.getElementById('no-results');
         const countEl = document.getElementById('results-count');
         const timeEl = document.getElementById('results-time');
+        const badge = document.getElementById('results-badge');
 
         countEl.textContent = `${data.row_count} rows`;
         timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        // Update results badge
+        if (badge) {
+            badge.textContent = data.row_count > 0 ? data.row_count : '';
+        }
 
         // Store results for export
         this.lastResults = data;
@@ -1389,6 +2207,9 @@ class QueryBuilder {
         if (sql) {
             this.queryHistory.addQuery(sql, 'SELECT', data.row_count, data.execution_time_ms);
         }
+
+        // Switch to results tab in bottom panel
+        this.switchBottomTab('results');
 
         if (!data.rows.length) {
             table.style.display = 'none';
@@ -1439,7 +2260,7 @@ class QueryBuilder {
     exportSQL() {
         const sql = this.buildSQL();
         if (!sql || sql === 'SELECT * FROM table_name;') {
-            alert('No query to export');
+            toast.warning('No query to export');
             return;
         }
         this.queryExport.exportSQL(sql, 'query');
@@ -1447,7 +2268,7 @@ class QueryBuilder {
 
     exportCSV() {
         if (!this.lastResults || !this.lastResults.rows || !this.lastResults.rows.length) {
-            alert('No results to export. Run a query first.');
+            toast.warning('No results to export. Run a query first.');
             return;
         }
         this.queryExport.exportCSV(this.lastResults.rows, 'results');
@@ -1455,7 +2276,7 @@ class QueryBuilder {
 
     exportJSON() {
         if (!this.lastResults || !this.lastResults.rows || !this.lastResults.rows.length) {
-            alert('No results to export. Run a query first.');
+            toast.warning('No results to export. Run a query first.');
             return;
         }
         this.queryExport.exportJSON(this.lastResults.rows, 'results');
@@ -1646,6 +2467,7 @@ class QueryBuilder {
             document.getElementById('offset-input').value = '';
 
             this.renderSelectedTables();
+            this.renderColumns();
             this.renderJoins();
             this.renderConditions();
             this.renderOrderBy();
