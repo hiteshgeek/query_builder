@@ -75,6 +75,29 @@ $basePath = get_base_path();
                 </div>
             </div>
 
+            <!-- Mode Switcher -->
+            <div class="mode-switcher" id="mode-switcher">
+                <button class="mode-btn active" data-mode="builder" data-tooltip="Query Builder Mode">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Builder</span>
+                </button>
+                <button class="mode-btn" data-mode="browser" data-tooltip="Data Browser Mode">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Browser</span>
+                </button>
+            </div>
+
             <div class="app-actions">
                 <!-- Saved Queries & History Toggle -->
                 <div class="header-toggle-group">
@@ -274,7 +297,7 @@ $basePath = get_base_path();
                         </svg>
                         CREATE
                     </button>
-                    <span class="query-type-divider"></span>
+                                        <span class="query-type-divider"></span>
                     <button class="query-type-tab" data-type="users">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -893,6 +916,125 @@ $basePath = get_base_path();
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA BROWSER Panel -->
+                <div class="builder-panel query-panel browse-panel" data-panel="browse">
+                    <div class="panel-header">
+                        <h3>Data Browser</h3>
+                        <div class="panel-header-actions">
+                            <button class="btn-sm" id="btn-refresh-browse" data-tooltip="Refresh Data">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 4v6h-6M1 20v-6h6"/>
+                                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                                </svg>
+                                Refresh
+                            </button>
+                            <button class="btn-sm btn-primary-sm" id="btn-add-row" data-tooltip="Add New Row">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Add Row
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-content browse-panel-content">
+                        <!-- Browse Toolbar -->
+                        <div class="browse-toolbar">
+                            <div class="browse-toolbar-left">
+                                <div class="browse-table-info" id="browse-table-info">
+                                    <span class="browse-table-name">Select a table from the sidebar</span>
+                                </div>
+                            </div>
+                            <div class="browse-toolbar-right">
+                                <div class="browse-search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                    <input type="text" id="browse-quick-search" placeholder="Quick search..." disabled>
+                                </div>
+                                <div class="browse-bulk-actions" id="browse-bulk-actions" style="display: none;">
+                                    <span class="selected-count" id="browse-selected-count">0 selected</span>
+                                    <button class="btn-sm btn-danger-sm" id="btn-bulk-delete">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                        </svg>
+                                        Delete Selected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Grid Container -->
+                        <div class="data-grid-wrapper" id="data-grid-wrapper">
+                            <div class="browse-empty-state" id="browse-empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="14" y="14" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                                <h4>Select a Table</h4>
+                                <p>Click on a table in the sidebar to browse its data</p>
+                            </div>
+                            <div class="data-grid-container" id="data-grid-container" style="display: none;">
+                                <!-- DataGrid renders here -->
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="browse-pagination" id="browse-pagination" style="display: none;">
+                            <div class="pagination-info">
+                                <span>Showing </span>
+                                <span id="pagination-start">0</span>
+                                <span>-</span>
+                                <span id="pagination-end">0</span>
+                                <span> of </span>
+                                <span id="pagination-total">0</span>
+                                <span> rows</span>
+                            </div>
+                            <div class="pagination-size">
+                                <label>Rows per page:</label>
+                                <div class="select-wrapper">
+                                    <select id="pagination-limit">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pagination-nav">
+                                <button class="pagination-btn" id="btn-first-page" data-tooltip="First Page" disabled>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="11 17 6 12 11 7"/>
+                                        <polyline points="18 17 13 12 18 7"/>
+                                    </svg>
+                                </button>
+                                <button class="pagination-btn" id="btn-prev-page" data-tooltip="Previous Page" disabled>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"/>
+                                    </svg>
+                                </button>
+                                <div class="pagination-pages" id="pagination-pages">
+                                    <!-- Page numbers render here -->
+                                </div>
+                                <button class="pagination-btn" id="btn-next-page" data-tooltip="Next Page" disabled>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </button>
+                                <button class="pagination-btn" id="btn-last-page" data-tooltip="Last Page" disabled>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="13 17 18 12 13 7"/>
+                                        <polyline points="6 17 11 12 6 7"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -20,6 +20,7 @@ import tooltip from './Tooltip.js';
 import resizeManager from './ResizeManager.js';
 import savedQueries from './SavedQueries.js';
 import CreateTableBuilder from './CreateTableBuilder.js';
+import DataBrowser from './DataBrowser.js';
 
 hljs.registerLanguage('sql', sql);
 
@@ -60,6 +61,7 @@ class QueryBuilder {
         this.deleteBuilder = null;
         this.alterBuilder = null;
         this.createTableBuilder = null;
+        this.dataBrowser = null;
         this.userManager = null;
         this.permissionManager = null;
 
@@ -84,7 +86,9 @@ class QueryBuilder {
     async init() {
         this.bindEvents();
         this.bindDatabaseEvents();
+        this.bindModeEvents();
         this.restorePanelStates();
+        this.restoreAppMode();
         await this.loadDatabases();
         await this.loadSchema();
         this.initSubBuilders();
@@ -119,6 +123,76 @@ class QueryBuilder {
         // Remove the data attributes used for initial render (CSS takes over via classes now)
         document.documentElement.removeAttribute('data-sidebar-collapsed');
         document.documentElement.removeAttribute('data-bottom-collapsed');
+    }
+
+    /**
+     * Bind mode switcher events
+     */
+    bindModeEvents() {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                this.switchAppMode(mode);
+            });
+        });
+    }
+
+    /**
+     * Restore app mode from localStorage
+     */
+    restoreAppMode() {
+        const savedMode = localStorage.getItem('qb-app-mode') || 'builder';
+        this.switchAppMode(savedMode, false);
+    }
+
+    /**
+     * Switch between builder and browser modes
+     */
+    switchAppMode(mode, saveToStorage = true) {
+        const app = document.querySelector('.app');
+        app.dataset.mode = mode;
+
+        // Update mode buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        // Save to localStorage
+        if (saveToStorage) {
+            localStorage.setItem('qb-app-mode', mode);
+        }
+
+        // Handle mode-specific logic
+        if (mode === 'browser') {
+            // Switch to browse query type internally
+            this.currentQueryType = 'browse';
+            this.refreshCurrentSQLPreview();
+
+            // If we have a table stored, load it
+            const savedTable = localStorage.getItem('qb-browse-table');
+            if (savedTable && this.dataBrowser) {
+                this.dataBrowser.selectTable(savedTable);
+                this.highlightBrowsingTable(savedTable);
+            }
+        } else {
+            // Switch back to select if currently on browse
+            if (this.currentQueryType === 'browse') {
+                this.currentQueryType = 'select';
+                // Activate the SELECT tab
+                document.querySelectorAll('.query-type-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.type === 'select');
+                });
+                document.querySelectorAll('.query-panel').forEach(panel => {
+                    panel.classList.toggle('active', panel.dataset.panel === 'select');
+                });
+                this.refreshCurrentSQLPreview();
+            }
+
+            // Remove browsing highlight
+            document.querySelectorAll('.table-item.browsing').forEach(el => {
+                el.classList.remove('browsing');
+            });
+        }
     }
 
     initSubBuilders() {
@@ -162,6 +236,14 @@ class QueryBuilder {
             this.createTableBuilder.updateSchema(this.schema);
         }
 
+        // Initialize Data Browser
+        this.dataBrowser = new DataBrowser(this.schema, (sql) => {
+            this.updateBrowseSQLPreview(sql);
+        });
+        if (this.schema) {
+            this.dataBrowser.updateSchema(this.schema);
+        }
+
         // Initialize Permission Manager (needs to be before UserManager)
         this.permissionManager = new PermissionManager(this.typeToConfirm);
 
@@ -201,6 +283,10 @@ class QueryBuilder {
     }
 
     updateCreateSQLPreview(sql) {
+        this.updateBottomPanelSQL(sql);
+    }
+
+    updateBrowseSQLPreview(sql) {
         this.updateBottomPanelSQL(sql);
     }
 
@@ -926,7 +1012,17 @@ class QueryBuilder {
     }
 
     handleTableDoubleClick(tableName) {
-        // Handle based on current query type
+        // Check if we're in browser mode
+        const appMode = document.querySelector('.app')?.dataset.mode;
+        if (appMode === 'browser') {
+            if (this.dataBrowser) {
+                this.dataBrowser.selectTable(tableName);
+                this.highlightBrowsingTable(tableName);
+            }
+            return;
+        }
+
+        // Handle based on current query type (builder mode)
         switch (this.currentQueryType) {
             case 'select':
                 this.addTable(tableName);
@@ -957,6 +1053,22 @@ class QueryBuilder {
                 break;
             default:
                 this.addTable(tableName);
+        }
+    }
+
+    /**
+     * Highlight the table currently being browsed in sidebar
+     */
+    highlightBrowsingTable(tableName) {
+        // Remove previous highlight
+        document.querySelectorAll('.table-item.browsing').forEach(el => {
+            el.classList.remove('browsing');
+        });
+
+        // Add highlight to current table
+        const tableItem = document.querySelector(`.table-item[data-table="${tableName}"]`);
+        if (tableItem) {
+            tableItem.classList.add('browsing');
         }
     }
 
@@ -1029,6 +1141,7 @@ class QueryBuilder {
                 'update': 'Update Data',
                 'delete': 'Delete Data',
                 'alter': 'Execute ALTER',
+                'browse': 'Refresh Data',
                 'users': 'Refresh Users'
             };
             runBtn.innerHTML = `
@@ -1052,6 +1165,8 @@ class QueryBuilder {
         // Show helpful message for users tab
         if (this.currentQueryType === 'users') {
             sql = '-- User management queries will appear here when executed';
+        } else if (this.currentQueryType === 'browse') {
+            sql = '-- Browse mode: Select a table from the sidebar to view data';
         } else if (!sql || sql.startsWith('-- ')) {
             // Keep placeholder messages from builders
         }
@@ -1178,6 +1293,9 @@ class QueryBuilder {
             }
             if (this.createTableBuilder) {
                 this.createTableBuilder.updateSchema(this.schema);
+            }
+            if (this.dataBrowser) {
+                this.dataBrowser.updateSchema(this.schema);
             }
         } catch (error) {
             tablesList.innerHTML = `<div class="loading">Error: ${error.message}</div>`;

@@ -63,6 +63,14 @@ class Database
         return $stmt->rowCount();
     }
 
+    /**
+     * Get the ID of the last inserted row
+     */
+    public function lastInsertId(): string|false
+    {
+        return $this->getConnection()->lastInsertId();
+    }
+
     public function getDatabaseName(): string
     {
         return $this->name;
