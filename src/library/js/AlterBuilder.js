@@ -8,6 +8,8 @@
  * - Table properties: RENAME, ENGINE, CHARSET
  */
 
+import toast from './Toast.js';
+
 class AlterBuilder {
     constructor(schema, onSQLChange, typeToConfirm) {
         this.schema = schema;
@@ -183,18 +185,18 @@ class AlterBuilder {
                     ${col.column_default !== null ? `<span class="col-default">= ${col.column_default}</span>` : ''}
                 </div>
                 <div class="column-actions">
-                    <button class="column-action-btn" data-action="modify" title="Modify">
+                    <button class="column-action-btn" data-action="modify" data-tooltip="Modify">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                     </button>
-                    <button class="column-action-btn" data-action="rename" title="Rename">
+                    <button class="column-action-btn" data-action="rename" data-tooltip="Rename">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                         </svg>
                     </button>
-                    <button class="column-action-btn danger" data-action="drop" title="Drop" ${isPrimary ? 'disabled' : ''}>
+                    <button class="column-action-btn danger" data-action="drop" data-tooltip="Drop" ${isPrimary ? 'disabled' : ''}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                         </svg>
@@ -206,7 +208,7 @@ class AlterBuilder {
 
     showAddColumnForm() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 
@@ -306,12 +308,12 @@ class AlterBuilder {
         const position = document.getElementById('new-col-position').value;
 
         if (!name) {
-            alert('Column name is required');
+            toast.warning('Column name is required');
             return;
         }
 
         if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
-            alert('Invalid column name. Use only letters, numbers, and underscores.');
+            toast.warning('Invalid column name. Use only letters, numbers, and underscores.');
             return;
         }
 
@@ -521,11 +523,11 @@ class AlterBuilder {
         document.getElementById('btn-confirm-rename').addEventListener('click', () => {
             const newName = document.getElementById('rename-col-newname').value.trim();
             if (!newName) {
-                alert('New column name is required');
+                toast.warning('New column name is required');
                 return;
             }
             if (!newName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
-                alert('Invalid column name');
+                toast.warning('Invalid column name');
                 return;
             }
 
@@ -606,7 +608,7 @@ class AlterBuilder {
                     <span class="index-type">${isPrimary ? 'PRIMARY KEY' : (idx.non_unique === '0' ? 'UNIQUE' : 'INDEX')}</span>
                     <span class="index-columns">(${idx.columns || idx.column_name})</span>
                 </div>
-                <button class="column-action-btn danger index-drop-btn" data-index="${idx.index_name}" ${isPrimary ? 'disabled' : ''} title="Drop Index">
+                <button class="column-action-btn danger index-drop-btn" data-index="${idx.index_name}" ${isPrimary ? 'disabled' : ''} data-tooltip="Drop Index">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
@@ -617,7 +619,7 @@ class AlterBuilder {
 
     showAddIndexForm() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 
@@ -673,12 +675,12 @@ class AlterBuilder {
         const selectedCols = Array.from(document.querySelectorAll('input[name="idx-columns"]:checked')).map(cb => cb.value);
 
         if (!name) {
-            alert('Index name is required');
+            toast.warning('Index name is required');
             return;
         }
 
         if (selectedCols.length === 0) {
-            alert('Select at least one column');
+            toast.warning('Select at least one column');
             return;
         }
 
@@ -756,7 +758,7 @@ class AlterBuilder {
                     <span class="fk-name">${fk.constraint_name}</span>
                     <span class="fk-definition">${fk.column_name} &rarr; ${fk.referenced_table}.${fk.referenced_column}</span>
                 </div>
-                <button class="column-action-btn danger fk-drop-btn" data-fk="${fk.constraint_name}" title="Drop Foreign Key">
+                <button class="column-action-btn danger fk-drop-btn" data-fk="${fk.constraint_name}" data-tooltip="Drop Foreign Key">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
@@ -767,7 +769,7 @@ class AlterBuilder {
 
     showAddForeignKeyForm() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 
@@ -862,7 +864,7 @@ class AlterBuilder {
         const onUpdate = document.getElementById('new-fk-on-update').value;
 
         if (!name || !column || !refTable || !refColumn) {
-            alert('All fields are required');
+            toast.warning('All fields are required');
             return;
         }
 
@@ -972,11 +974,11 @@ class AlterBuilder {
         document.getElementById('btn-confirm-rename-table').addEventListener('click', () => {
             const newName = document.getElementById('rename-table-name').value.trim();
             if (!newName) {
-                alert('New table name is required');
+                toast.warning('New table name is required');
                 return;
             }
             if (!newName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
-                alert('Invalid table name');
+                toast.warning('Invalid table name');
                 return;
             }
 

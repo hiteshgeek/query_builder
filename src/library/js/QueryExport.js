@@ -7,6 +7,8 @@
  * - Export results to JSON
  */
 
+import toast from './Toast.js';
+
 class QueryExport {
     constructor() {}
 
@@ -23,7 +25,7 @@ class QueryExport {
      */
     exportCSV(data, filename = 'results') {
         if (!data || !data.rows || data.rows.length === 0) {
-            alert('No data to export');
+            toast.warning('No data to export');
             return;
         }
 
@@ -46,7 +48,7 @@ class QueryExport {
      */
     exportJSON(data, filename = 'results') {
         if (!data || !data.rows || data.rows.length === 0) {
-            alert('No data to export');
+            toast.warning('No data to export');
             return;
         }
 

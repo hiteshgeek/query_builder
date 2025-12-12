@@ -8,6 +8,8 @@
  * - GRANT OPTION support
  */
 
+import toast from './Toast.js';
+
 class PermissionManager {
     constructor(typeToConfirm) {
         this.typeToConfirm = typeToConfirm;
@@ -161,7 +163,7 @@ class PermissionManager {
 
     showPresetModal() {
         if (!this.selectedUser) {
-            alert('Please select a user first');
+            toast.warning('Please select a user first');
             return;
         }
 
@@ -213,7 +215,7 @@ class PermissionManager {
         const database = document.getElementById('preset-database').value;
 
         if (!database) {
-            alert('Please select a database');
+            toast.warning('Please select a database');
             return;
         }
 
@@ -237,16 +239,16 @@ class PermissionManager {
 
             document.getElementById('permission-form-container').innerHTML = '';
             await this.loadPermissions();
-            alert(result.data.message);
+            toast.success(result.data.message);
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 
     showGrantModal() {
         if (!this.selectedUser) {
-            alert('Please select a user first');
+            toast.warning('Please select a user first');
             return;
         }
 
@@ -329,7 +331,7 @@ class PermissionManager {
             .map(cb => cb.value);
 
         if (privileges.length === 0) {
-            alert('Please select at least one privilege');
+            toast.warning('Please select at least one privilege');
             return;
         }
 
@@ -354,10 +356,10 @@ class PermissionManager {
 
             document.getElementById('permission-form-container').innerHTML = '';
             await this.loadPermissions();
-            alert(result.data.message);
+            toast.success(result.data.message);
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 
@@ -399,13 +401,13 @@ class PermissionManager {
             await this.loadPermissions();
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 
     async revokeAll() {
         if (!this.selectedUser) {
-            alert('Please select a user first');
+            toast.warning('Please select a user first');
             return;
         }
 
@@ -439,10 +441,10 @@ class PermissionManager {
             }
 
             await this.loadPermissions();
-            alert(result.data.message);
+            toast.success(result.data.message);
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 

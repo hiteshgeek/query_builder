@@ -2,6 +2,8 @@
  * DeleteBuilder - Handles DELETE query building with type-to-confirm safety
  */
 
+import toast from './Toast.js';
+
 class DeleteBuilder {
     constructor(schema, onSQLChange) {
         this.schema = schema;
@@ -62,7 +64,7 @@ class DeleteBuilder {
 
     addCondition() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 

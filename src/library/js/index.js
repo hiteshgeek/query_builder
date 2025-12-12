@@ -15,6 +15,8 @@ import QueryHistory from './QueryHistory.js';
 import QueryExport from './QueryExport.js';
 import typeToConfirm from './TypeToConfirm.js';
 import toast from './Toast.js';
+import confirmModal from './ConfirmModal.js';
+import tooltip from './Tooltip.js';
 import resizeManager from './ResizeManager.js';
 import savedQueries from './SavedQueries.js';
 
@@ -216,8 +218,14 @@ class QueryBuilder {
             document.getElementById('history-sidebar')?.classList.remove('open');
         });
 
-        document.getElementById('btn-clear-history')?.addEventListener('click', () => {
-            if (confirm('Clear all query history?')) {
+        document.getElementById('btn-clear-history')?.addEventListener('click', async () => {
+            const confirmed = await confirmModal.show({
+                title: 'Clear History',
+                message: 'Are you sure you want to clear all query history?',
+                confirmText: 'Clear',
+                type: 'warning'
+            });
+            if (confirmed) {
                 this.queryHistory.clearHistory();
                 this.renderHistory();
             }
@@ -788,10 +796,9 @@ class QueryBuilder {
         // Check if table already exists (unless forcing for self-join)
         const existingCount = this.selectedTables.filter(t => t.name === tableName).length;
         if (existingCount > 0 && !forceAdd) {
-            // Ask if they want to add again for self-join
-            if (!confirm(`"${tableName}" is already added. Add again for a self-join?`)) {
-                return;
-            }
+            // Show toast with action to add for self-join
+            this.showSelfJoinConfirmation(tableName);
+            return;
         }
 
         // Generate alias for duplicate tables
@@ -823,6 +830,25 @@ class QueryBuilder {
         this.renderGroupBy();
         this.updateJoinSuggestions();
         this.updateSQLPreview();
+    }
+
+    async showSelfJoinConfirmation(tableName) {
+        const confirmed = await confirmModal.show({
+            title: 'Self-Join',
+            message: `"${tableName}" is already added. Add again for a self-join?`,
+            confirmText: 'Add for Self-Join',
+            cancelText: 'Cancel',
+            type: 'info'
+        });
+        if (confirmed) {
+            this.addTable(tableName, true);
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     getTableKey(tableEntry) {
@@ -940,7 +966,7 @@ class QueryBuilder {
                     <input type="text" class="alias-input" placeholder="alias"
                            value="${tableEntry.alias || ''}"
                            style="display: none; color: ${color.text}; border-color: ${color.border}">
-                    <button class="edit-alias-btn" title="Set alias">
+                    <button class="edit-alias-btn" data-tooltip="Set alias">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -1374,7 +1400,7 @@ class QueryBuilder {
                 return `
                     <span class="orderby-tag" data-column="${order.column}" style="${style}">
                         ${order.column}
-                        <button class="direction-toggle ${dirClass}" data-column="${order.column}" title="Toggle direction (${order.direction})">${arrowIcon} ${order.direction}</button>
+                        <button class="direction-toggle ${dirClass}" data-column="${order.column}" data-tooltip="Toggle direction (${order.direction})">${arrowIcon} ${order.direction}</button>
                         <button class="tag-remove" data-column="${order.column}">&times;</button>
                     </span>
                 `;
@@ -1965,11 +1991,13 @@ class QueryBuilder {
 
         // Warn if no WHERE clause
         if (this.updateBuilder.hasNoWhereClause()) {
-            const confirmed = confirm(
-                '⚠️ WARNING: No WHERE clause specified!\n\n' +
-                'This will update ALL rows in the table.\n\n' +
-                'Are you sure you want to proceed?'
-            );
+            const confirmed = await confirmModal.show({
+                title: 'Warning: No WHERE Clause',
+                message: 'No WHERE clause specified!\n\nThis will update ALL rows in the table.\n\nAre you sure you want to proceed?',
+                confirmText: 'Update All Rows',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
             if (!confirmed) return;
         }
 
@@ -2429,13 +2457,13 @@ class QueryBuilder {
                         ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
                     </span>
                     <div class="query-actions">
-                        <button class="btn-sm btn-load" data-id="${entry.id}" title="Load Query">
+                        <button class="btn-sm btn-load" data-id="${entry.id}" data-tooltip="Load Query">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"/>
                             </svg>
                             Load
                         </button>
-                        <button class="btn-icon btn-delete" data-id="${entry.id}" title="Remove from history">
+                        <button class="btn-icon btn-delete" data-id="${entry.id}" data-tooltip="Remove from history">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -2834,13 +2862,13 @@ class QueryBuilder {
                         ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
                     </span>
                     <div class="query-actions">
-                        <button class="btn-sm btn-load" data-id="${entry.id}" title="Load Query">
+                        <button class="btn-sm btn-load" data-id="${entry.id}" data-tooltip="Load Query">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"/>
                             </svg>
                             Load
                         </button>
-                        <button class="btn-icon btn-delete" data-id="${entry.id}" title="Remove from history">
+                        <button class="btn-icon btn-delete" data-id="${entry.id}" data-tooltip="Remove from history">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>

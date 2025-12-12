@@ -2,6 +2,8 @@
  * UpdateBuilder - Handles UPDATE query building
  */
 
+import toast from './Toast.js';
+
 class UpdateBuilder {
     constructor(schema, onSQLChange) {
         this.schema = schema;
@@ -193,7 +195,7 @@ class UpdateBuilder {
 
     addCondition() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 

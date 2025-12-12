@@ -2,6 +2,8 @@
  * InsertBuilder - Handles INSERT query building
  */
 
+import toast from './Toast.js';
+
 class InsertBuilder {
     constructor(schema, onSQLChange) {
         this.schema = schema;
@@ -69,7 +71,7 @@ class InsertBuilder {
 
     addRow() {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 
@@ -128,7 +130,7 @@ class InsertBuilder {
                         <tr>
                             <th class="row-num">#</th>
                             ${editableColumns.map(col => `
-                                <th title="${col.data_type}${col.nullable === 'YES' ? ' (nullable)' : ' (required)'}">
+                                <th data-tooltip="${col.data_type}${col.nullable === 'YES' ? ' (nullable)' : ' (required)'}">
                                     ${col.name}
                                     ${col.nullable !== 'YES' ? '<span class="required">*</span>' : ''}
                                 </th>
@@ -146,7 +148,7 @@ class InsertBuilder {
                                     </td>
                                 `).join('')}
                                 <td class="actions">
-                                    <button class="btn-icon remove-row-btn" data-row="${rowIndex}" title="Remove row">
+                                    <button class="btn-icon remove-row-btn" data-row="${rowIndex}" data-tooltip="Remove row">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="18" y1="6" x2="6" y2="18"/>
                                             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -329,7 +331,7 @@ class InsertBuilder {
 
     showImportDialog(format) {
         if (!this.selectedTable) {
-            alert('Please select a table first');
+            toast.warning('Please select a table first');
             return;
         }
 
@@ -413,7 +415,7 @@ class InsertBuilder {
             this.updateSQL();
 
         } catch (error) {
-            alert('Import error: ' + error.message);
+            toast.error('Import error: ' + error.message);
         }
     }
 

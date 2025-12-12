@@ -2810,6 +2810,23 @@ textarea.insert-input {
   }
 }
 
+.toast-action {
+  @include button-reset;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  background: $color-primary;
+  color: #fff;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $color-primary-dark;
+  }
+}
+
 .toast-success {
   border-left-color: $color-success;
 
@@ -3497,6 +3514,267 @@ textarea.insert-input {
       font-size: $font-size-xs;
       white-space: pre-wrap;
       word-break: break-all;
+    }
+  }
+}
+
+// =================================
+// Confirm Modal Styles
+// =================================
+
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 200ms ease;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+
+    .confirm-modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+.confirm-modal {
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 400px;
+  margin: $spacing-md;
+  transform: scale(0.9);
+  opacity: 0;
+  transition: transform 200ms ease, opacity 200ms ease;
+
+  // Type variations
+  &.confirm-modal-danger {
+    .confirm-modal-icon {
+      color: $color-danger;
+    }
+  }
+
+  &.confirm-modal-warning {
+    .confirm-modal-icon {
+      color: $color-warning;
+    }
+  }
+
+  &.confirm-modal-info {
+    .confirm-modal-icon {
+      color: $color-info;
+    }
+  }
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+}
+
+.confirm-modal-icon {
+  flex-shrink: 0;
+  color: $color-primary;
+
+  svg {
+    display: block;
+  }
+}
+
+.confirm-modal-title {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.confirm-modal-body {
+  padding: $spacing-md;
+}
+
+.confirm-modal-message {
+  margin: 0;
+  font-size: $font-size-base;
+  color: $text-secondary;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+
+  .btn {
+    min-width: 80px;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border: 1px solid transparent;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  .btn-cancel {
+    background: $bg-secondary;
+    color: $text-primary;
+    border-color: $border-color;
+
+    &:hover {
+      background: $bg-tertiary;
+    }
+  }
+
+  .btn-primary {
+    background: $color-primary;
+    color: #fff;
+
+    &:hover {
+      background: $color-primary-dark;
+    }
+  }
+
+  .btn-danger {
+    background: $color-danger;
+    color: #fff;
+
+    &:hover {
+      background: #dc2626;
+    }
+  }
+
+  .btn-warning {
+    background: $color-warning;
+    color: #000;
+
+    &:hover {
+      background: #d97706;
+    }
+  }
+}
+
+// =================================
+// Custom Tooltip Styles
+// =================================
+
+.custom-tooltip {
+  position: absolute;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, visibility 150ms ease;
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.custom-tooltip-content {
+  background: $gray-900;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: $shadow-md;
+
+  // For dark theme compatibility
+  [data-theme="dark"] & {
+    background: $gray-100;
+    color: $gray-900;
+  }
+}
+
+.custom-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+// Position variations
+.custom-tooltip-top {
+  .custom-tooltip-arrow {
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-top-color: $gray-900;
+    border-bottom: none;
+
+    [data-theme="dark"] & {
+      border-top-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-bottom {
+  .custom-tooltip-arrow {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-bottom-color: $gray-900;
+    border-top: none;
+
+    [data-theme="dark"] & {
+      border-bottom-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-left {
+  .custom-tooltip-arrow {
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: $gray-900;
+    border-right: none;
+
+    [data-theme="dark"] & {
+      border-left-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-right {
+  .custom-tooltip-arrow {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: $gray-900;
+    border-left: none;
+
+    [data-theme="dark"] & {
+      border-right-color: $gray-100;
     }
   }
 }

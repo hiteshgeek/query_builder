@@ -3,6 +3,7 @@
  * Handles saving, loading, organizing, and managing saved SQL queries
  */
 import toast from './Toast.js';
+import confirmModal from './ConfirmModal.js';
 
 class SavedQueries {
     constructor() {
@@ -236,7 +237,7 @@ class SavedQueries {
                         <option value="custom">Custom</option>
                     </select>
                     <button class="btn-icon btn-favorites ${this.currentFilter.favorites ? 'active' : ''}"
-                            id="btn-filter-favorites" title="Show Favorites">
+                            id="btn-filter-favorites" data-tooltip="Show Favorites">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="${this.currentFilter.favorites ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
@@ -387,10 +388,10 @@ class SavedQueries {
         return `
             <div class="saved-query-item" data-id="${query.id}">
                 <div class="query-item-header">
-                    <span class="query-type-icon" title="${query.query_type.toUpperCase()}">${typeIcon}</span>
+                    <span class="query-type-icon" data-tooltip="${query.query_type.toUpperCase()}">${typeIcon}</span>
                     <span class="query-title">${this.escapeHtml(query.title)}</span>
                     <button class="btn-icon btn-favorite ${query.is_favorite ? 'active' : ''}"
-                            data-id="${query.id}" data-favorite="${query.is_favorite}" title="Toggle Favorite">
+                            data-id="${query.id}" data-favorite="${query.is_favorite}" data-tooltip="Toggle Favorite">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="${query.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
@@ -400,22 +401,22 @@ class SavedQueries {
                 ${tagsHtml}
                 <div class="query-item-footer">
                     <span class="query-meta">
-                        ${query.run_count > 0 ? `<span title="Run ${query.run_count} times">Runs: ${query.run_count}</span>` : ''}
+                        ${query.run_count > 0 ? `<span data-tooltip="Run ${query.run_count} times">Runs: ${query.run_count}</span>` : ''}
                     </span>
                     <div class="query-actions">
-                        <button class="btn-sm btn-load" data-id="${query.id}" title="Load Query">
+                        <button class="btn-sm btn-load" data-id="${query.id}" data-tooltip="Load Query">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"/>
                             </svg>
                             Load
                         </button>
-                        <button class="btn-icon btn-edit" data-id="${query.id}" title="Edit">
+                        <button class="btn-icon btn-edit" data-id="${query.id}" data-tooltip="Edit">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </button>
-                        <button class="btn-icon btn-delete" data-id="${query.id}" title="Delete">
+                        <button class="btn-icon btn-delete" data-id="${query.id}" data-tooltip="Delete">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -472,7 +473,14 @@ class SavedQueries {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const id = parseInt(btn.dataset.id);
-                if (confirm('Are you sure you want to delete this saved query?')) {
+                const confirmed = await confirmModal.show({
+                    title: 'Delete Query',
+                    message: 'Are you sure you want to delete this saved query?',
+                    confirmText: 'Delete',
+                    cancelText: 'Cancel',
+                    type: 'danger'
+                });
+                if (confirmed) {
                     if (await this.deleteQuery(id)) {
                         this.refreshPanel();
                     }

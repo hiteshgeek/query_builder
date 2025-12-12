@@ -9,6 +9,8 @@
  * - Lock/Unlock accounts
  */
 
+import toast from './Toast.js';
+
 class UserManager {
     constructor(typeToConfirm, onUserSelect = null) {
         this.typeToConfirm = typeToConfirm;
@@ -123,27 +125,27 @@ class UserManager {
                     ${user.has_password === 'No' ? '<span class="user-badge warning">No Password</span>' : ''}
                 </div>
                 <div class="user-actions">
-                    <button class="user-action-btn" data-action="password" title="Change Password">
+                    <button class="user-action-btn" data-action="password" data-tooltip="Change Password">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                             <path d="M7 11V7a5 5 0 0110 0v4"/>
                         </svg>
                     </button>
                     ${isLocked ?
-                        `<button class="user-action-btn" data-action="unlock" title="Unlock Account">
+                        `<button class="user-action-btn" data-action="unlock" data-tooltip="Unlock Account">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                 <path d="M7 11V7a5 5 0 019.9-1"/>
                             </svg>
                         </button>` :
-                        `<button class="user-action-btn" data-action="lock" title="Lock Account" ${isRoot ? 'disabled' : ''}>
+                        `<button class="user-action-btn" data-action="lock" data-tooltip="Lock Account" ${isRoot ? 'disabled' : ''}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                 <path d="M7 11V7a5 5 0 0110 0v4"/>
                             </svg>
                         </button>`
                     }
-                    <button class="user-action-btn danger" data-action="delete" title="Delete User" ${isRoot ? 'disabled' : ''}>
+                    <button class="user-action-btn danger" data-action="delete" data-tooltip="Delete User" ${isRoot ? 'disabled' : ''}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                         </svg>
@@ -307,20 +309,20 @@ class UserManager {
         const confirmPassword = document.getElementById('new-user-password-confirm').value;
 
         if (!username) {
-            alert('Username is required');
+            toast.warning('Username is required');
             return;
         }
 
         if (host === 'custom') {
             host = document.getElementById('new-user-custom-host').value.trim();
             if (!host) {
-                alert('Custom host is required');
+                toast.warning('Custom host is required');
                 return;
             }
         }
 
         if (password !== confirmPassword) {
-            alert('Passwords do not match');
+            toast.warning('Passwords do not match');
             return;
         }
 
@@ -340,10 +342,10 @@ class UserManager {
             // Clear form and reload users
             document.getElementById('user-form-container').innerHTML = '';
             await this.loadUsers();
-            alert(result.data.message);
+            toast.success(result.data.message);
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 
@@ -380,12 +382,12 @@ class UserManager {
             const confirmPassword = document.getElementById('change-password-confirm').value;
 
             if (!password) {
-                alert('Password is required');
+                toast.warning('Password is required');
                 return;
             }
 
             if (password !== confirmPassword) {
-                alert('Passwords do not match');
+                toast.warning('Passwords do not match');
                 return;
             }
 
@@ -408,10 +410,10 @@ class UserManager {
                 }
 
                 container.innerHTML = '';
-                alert(result.data.message);
+                toast.success(result.data.message);
 
             } catch (error) {
-                alert('Error: ' + error.message);
+                toast.error('Error: ' + error.message);
             }
         });
     }
@@ -437,7 +439,7 @@ class UserManager {
             await this.loadUsers();
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 
@@ -480,7 +482,7 @@ class UserManager {
             }
 
         } catch (error) {
-            alert('Error: ' + error.message);
+            toast.error('Error: ' + error.message);
         }
     }
 

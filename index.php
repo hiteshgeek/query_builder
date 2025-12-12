@@ -39,7 +39,7 @@ $basePath = get_base_path();
             </div>
             <div class="app-actions">
                 <!-- Saved Queries Toggle -->
-                <button class="btn-icon" id="btn-toggle-saved" title="Saved Queries">
+                <button class="btn-icon" id="btn-toggle-saved" data-tooltip="Saved Queries">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
                         <polyline points="17 21 17 13 7 13 7 21"/>
@@ -47,7 +47,7 @@ $basePath = get_base_path();
                     </svg>
                 </button>
                 <!-- History Toggle -->
-                <button class="btn-icon" id="btn-toggle-history" title="Query History">
+                <button class="btn-icon" id="btn-toggle-history" data-tooltip="Query History">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
@@ -55,18 +55,18 @@ $basePath = get_base_path();
                 </button>
                 <!-- Theme Toggle -->
                 <div class="theme-toggle">
-                    <button class="theme-btn" data-theme="light" title="Light Mode">
+                    <button class="theme-btn" data-theme="light" data-tooltip="Light Mode">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="5"/>
                             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                         </svg>
                     </button>
-                    <button class="theme-btn" data-theme="dark" title="Dark Mode">
+                    <button class="theme-btn" data-theme="dark" data-tooltip="Dark Mode">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
                         </svg>
                     </button>
-                    <button class="theme-btn" data-theme="system" title="System Theme">
+                    <button class="theme-btn" data-theme="system" data-tooltip="System Theme">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                             <line x1="8" y1="21" x2="16" y2="21"/>
@@ -74,7 +74,7 @@ $basePath = get_base_path();
                         </svg>
                     </button>
                 </div>
-                <button class="btn btn-secondary" id="btn-clear-all" title="Clear all queries and results">
+                <button class="btn btn-secondary" id="btn-clear-all" data-tooltip="Clear all queries and results">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
@@ -103,12 +103,12 @@ $basePath = get_base_path();
                 <div class="history-header">
                     <h3>Query History</h3>
                     <div class="history-actions">
-                        <button class="btn-icon btn-sm" id="btn-clear-history" title="Clear History">
+                        <button class="btn-icon btn-sm" id="btn-clear-history" data-tooltip="Clear History">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
                         </button>
-                        <button class="btn-icon btn-sm" id="btn-close-history" title="Close">
+                        <button class="btn-icon btn-sm" id="btn-close-history" data-tooltip="Close">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
                                 <line x1="6" y1="6" x2="18" y2="18"/>
@@ -128,7 +128,7 @@ $basePath = get_base_path();
             <aside class="saved-queries-sidebar" id="saved-queries-sidebar">
                 <div class="saved-queries-sidebar-header">
                     <h3>Saved Queries</h3>
-                    <button class="btn-icon btn-sm" id="btn-close-saved" title="Close">
+                    <button class="btn-icon btn-sm" id="btn-close-saved" data-tooltip="Close">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/>
                             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -144,7 +144,7 @@ $basePath = get_base_path();
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h3>Tables</h3>
-                    <button class="btn-icon" id="btn-refresh-schema" title="Refresh Schema">
+                    <button class="btn-icon" id="btn-refresh-schema" data-tooltip="Refresh Schema">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M23 4v6h-6M1 20v-6h6"/>
                             <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
@@ -218,7 +218,7 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel active" data-panel="select">
                     <div class="panel-header">
                         <h3>SELECT Query</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-select" title="Clear SELECT query">
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-select" data-tooltip="Clear SELECT query">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -317,7 +317,7 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="insert">
                     <div class="panel-header">
                         <h3>INSERT Query</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-insert" title="Clear INSERT query">
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-insert" data-tooltip="Clear INSERT query">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -371,7 +371,7 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="update">
                     <div class="panel-header">
                         <h3>UPDATE Query</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-update" title="Clear UPDATE query">
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-update" data-tooltip="Clear UPDATE query">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -422,7 +422,7 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="delete">
                     <div class="panel-header">
                         <h3>DELETE Query</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-delete" title="Clear DELETE query">
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-delete" data-tooltip="Clear DELETE query">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -463,7 +463,7 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="alter">
                     <div class="panel-header">
                         <h3>ALTER Table</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-alter" title="Clear ALTER query">
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-alter" data-tooltip="Clear ALTER query">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
@@ -696,7 +696,7 @@ $basePath = get_base_path();
                         <span id="results-count"></span>
                         <span id="results-time"></span>
                     </span>
-                    <button class="btn-sm" id="btn-export-sql" title="Export SQL">
+                    <button class="btn-sm" id="btn-export-sql" data-tooltip="Export SQL">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -704,7 +704,7 @@ $basePath = get_base_path();
                         </svg>
                         SQL
                     </button>
-                    <button class="btn-sm" id="btn-export-csv" title="Export CSV">
+                    <button class="btn-sm" id="btn-export-csv" data-tooltip="Export CSV">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -712,7 +712,7 @@ $basePath = get_base_path();
                         </svg>
                         CSV
                     </button>
-                    <button class="btn-sm" id="btn-export-json" title="Export JSON">
+                    <button class="btn-sm" id="btn-export-json" data-tooltip="Export JSON">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -720,7 +720,7 @@ $basePath = get_base_path();
                         </svg>
                         JSON
                     </button>
-                    <button class="btn-sm" id="btn-copy-sql" title="Copy SQL">
+                    <button class="btn-sm" id="btn-copy-sql" data-tooltip="Copy SQL">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
@@ -815,7 +815,7 @@ $basePath = get_base_path();
                         <div class="chips-container" id="groups-chips-container"></div>
                         <div class="chips-input-wrapper">
                             <input type="text" id="save-query-group-input" placeholder="Type to add new group...">
-                            <button type="button" class="btn-add-chip" id="btn-add-group" title="Add Group">
+                            <button type="button" class="btn-add-chip" id="btn-add-group" data-tooltip="Add Group">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
@@ -830,7 +830,7 @@ $basePath = get_base_path();
                         <div class="chips-container" id="tags-chips-container"></div>
                         <div class="chips-input-wrapper">
                             <input type="text" id="save-query-tags-input" placeholder="Type to add new tag...">
-                            <button type="button" class="btn-add-chip" id="btn-add-tag" title="Add Tag">
+                            <button type="button" class="btn-add-chip" id="btn-add-tag" data-tooltip="Add Tag">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
