@@ -210,6 +210,41 @@ body {
   }
 }
 
+// Header Toggle Group (Saved Queries & History)
+.header-toggle-group {
+  @include flex-center;
+  gap: 2px;
+  padding: 2px;
+  background: $bg-tertiary;
+  border-radius: $border-radius;
+}
+
+.header-toggle-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: $text-muted;
+  transition: all $transition-fast;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-primary;
+  }
+
+  &.active {
+    color: $color-primary;
+    background: $bg-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
 // Theme Toggle
 .theme-toggle {
   @include flex-center;
@@ -217,7 +252,6 @@ body {
   padding: 2px;
   background: $bg-tertiary;
   border-radius: $border-radius;
-  margin-right: $spacing-sm;
 }
 
 .theme-btn {
@@ -318,6 +352,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 // Resizers
@@ -423,6 +458,27 @@ body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
+
+  &.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
+    border-right: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  // Initial collapsed state (prevents FOUC)
+  html[data-sidebar-collapsed="true"] & {
+    width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
+    border-right: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: none; // No transition on initial load
+  }
 }
 
 .sidebar-header {
@@ -437,6 +493,45 @@ body {
     letter-spacing: 0.5px;
     color: $text-secondary;
   }
+
+  .sidebar-header-actions {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
+// Sidebar Expand Button (when collapsed)
+.sidebar-expand-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 40px;
+  height: 100%;
+  background: $bg-primary;
+  border-right: 1px solid $border-color;
+  color: $text-muted;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $color-primary;
+    background: $bg-secondary;
+  }
+
+  .sidebar.collapsed ~ & {
+    display: flex;
+  }
+
+  // Initial collapsed state (prevents FOUC)
+  html[data-sidebar-collapsed="true"] & {
+    display: flex;
+  }
+}
+
+// Hide sidebar resizer when collapsed (initial state)
+html[data-sidebar-collapsed="true"] #sidebar-resizer {
+  display: none;
 }
 
 .sidebar-search {
@@ -3059,6 +3154,59 @@ textarea.insert-input {
   min-height: 100px;
   max-height: 70vh;
   flex-shrink: 0;
+  transition: height 0.2s ease, min-height 0.2s ease, opacity 0.2s ease;
+
+  &.collapsed {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    border-top: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  // Initial collapsed state (prevents FOUC)
+  html[data-bottom-collapsed="true"] & {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    border-top: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: none; // No transition on initial load
+  }
+}
+
+// Hide bottom resizer when collapsed (initial state)
+html[data-bottom-collapsed="true"] #bottom-resizer {
+  display: none;
+}
+
+// Bottom Panel Expand Button (when collapsed)
+.bottom-expand-btn {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-sm;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-secondary;
+  border-top: 1px solid $border-color;
+  color: $text-muted;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  display: none;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $color-primary;
+    background: $bg-tertiary;
+  }
+
+  // Initial collapsed state (prevents FOUC)
+  html[data-bottom-collapsed="true"] & {
+    display: flex;
+  }
 }
 
 .bottom-panel-tabs {
@@ -3094,6 +3242,21 @@ textarea.insert-input {
     @include flex-center;
     gap: $spacing-xs;
     padding-right: $spacing-sm;
+  }
+
+  .btn-icon-sm {
+    @include button-reset;
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    border-radius: $border-radius;
+    color: $text-muted;
+    transition: all $transition-fast;
+
+    &:hover {
+      color: $color-primary;
+      background: $bg-tertiary;
+    }
   }
 }
 

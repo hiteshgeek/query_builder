@@ -16,14 +16,23 @@ $basePath = get_base_path();
     <link rel="icon" type="image/svg+xml" href="<?= $basePath ?>/favicon.svg">
     <link rel="stylesheet" href="<?= asset('query-builder.css') ?>">
     <link rel="stylesheet" href="<?= asset('main.css') ?>">
-    <!-- Prevent FOUC by setting theme before CSS loads -->
+    <!-- Prevent FOUC by setting theme and panel states before CSS loads -->
     <script>
         (function() {
+            // Theme
             const saved = localStorage.getItem('qb-theme');
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             let theme = saved || 'system';
             if (theme === 'system') theme = prefersDark ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', theme);
+
+            // Panel collapsed states
+            if (localStorage.getItem('qb-sidebar-collapsed') === 'true') {
+                document.documentElement.setAttribute('data-sidebar-collapsed', 'true');
+            }
+            if (localStorage.getItem('qb-bottom-collapsed') === 'true') {
+                document.documentElement.setAttribute('data-bottom-collapsed', 'true');
+            }
         })();
     </script>
 </head>
@@ -67,21 +76,22 @@ $basePath = get_base_path();
             </div>
 
             <div class="app-actions">
-                <!-- Saved Queries Toggle -->
-                <button class="btn-icon" id="btn-toggle-saved" data-tooltip="Saved Queries">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
-                    </svg>
-                </button>
-                <!-- History Toggle -->
-                <button class="btn-icon" id="btn-toggle-history" data-tooltip="Query History">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </button>
+                <!-- Saved Queries & History Toggle -->
+                <div class="header-toggle-group">
+                    <button class="header-toggle-btn" id="btn-toggle-saved" data-tooltip="Saved Queries">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                    </button>
+                    <button class="header-toggle-btn" id="btn-toggle-history" data-tooltip="Query History">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </button>
+                </div>
                 <!-- Theme Toggle -->
                 <div class="theme-toggle">
                     <button class="theme-btn" data-theme="light" data-tooltip="Light Mode">
@@ -173,12 +183,20 @@ $basePath = get_base_path();
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h3>Tables</h3>
-                    <button class="btn-icon" id="btn-refresh-schema" data-tooltip="Refresh Schema">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M23 4v6h-6M1 20v-6h6"/>
-                            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-                        </svg>
-                    </button>
+                    <div class="sidebar-header-actions">
+                        <button class="btn-icon" id="btn-refresh-schema" data-tooltip="Refresh Schema">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 4v6h-6M1 20v-6h6"/>
+                                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" id="btn-collapse-sidebar" data-tooltip="Collapse Sidebar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="11 17 6 12 11 7"/>
+                                <polyline points="18 17 13 12 18 7"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="sidebar-search">
                     <input type="text" id="table-search" placeholder="Search tables...">
@@ -187,6 +205,14 @@ $basePath = get_base_path();
                     <div class="loading">Loading schema...</div>
                 </div>
             </aside>
+
+            <!-- Sidebar Expand Button (visible when collapsed) -->
+            <button class="sidebar-expand-btn" id="btn-expand-sidebar" data-tooltip="Expand Sidebar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="13 17 18 12 13 7"/>
+                    <polyline points="6 17 11 12 6 7"/>
+                </svg>
+            </button>
 
             <!-- Sidebar Resizer -->
             <div class="resizer resizer-horizontal" id="sidebar-resizer"></div>
@@ -858,6 +884,15 @@ $basePath = get_base_path();
             </main>
         </div>
 
+        <!-- Bottom Panel Expand Button (visible when collapsed) -->
+        <button class="bottom-expand-btn" id="btn-expand-bottom" data-tooltip="Expand Panel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="17 11 12 6 7 11"/>
+                <polyline points="17 18 12 13 7 18"/>
+            </svg>
+            <span>SQL / Results</span>
+        </button>
+
         <!-- Bottom Panel Resizer -->
         <div class="resizer resizer-vertical" id="bottom-resizer"></div>
 
@@ -923,6 +958,12 @@ $basePath = get_base_path();
                             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                         </svg>
                         Copy
+                    </button>
+                    <button class="btn-icon-sm" id="btn-collapse-bottom" data-tooltip="Collapse Panel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="7 13 12 18 17 13"/>
+                            <polyline points="7 6 12 11 17 6"/>
+                        </svg>
                     </button>
                 </div>
             </div>

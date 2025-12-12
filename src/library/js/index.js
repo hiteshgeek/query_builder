@@ -81,9 +81,26 @@ class QueryBuilder {
     async init() {
         this.bindEvents();
         this.bindDatabaseEvents();
+        this.restorePanelStates();
         await this.loadDatabases();
         await this.loadSchema();
         this.initSubBuilders();
+    }
+
+    restorePanelStates() {
+        // Restore sidebar collapsed state
+        if (localStorage.getItem('qb-sidebar-collapsed') === 'true') {
+            this.toggleSidebar(false);
+        }
+
+        // Restore bottom panel collapsed state
+        if (localStorage.getItem('qb-bottom-collapsed') === 'true') {
+            this.toggleBottomPanel(false);
+        }
+
+        // Remove the data attributes used for initial render (CSS takes over via classes now)
+        document.documentElement.removeAttribute('data-sidebar-collapsed');
+        document.documentElement.removeAttribute('data-bottom-collapsed');
     }
 
     initSubBuilders() {
@@ -190,6 +207,14 @@ class QueryBuilder {
 
         // Refresh schema
         document.getElementById('btn-refresh-schema')?.addEventListener('click', () => this.loadSchema());
+
+        // Sidebar collapse/expand
+        document.getElementById('btn-collapse-sidebar')?.addEventListener('click', () => this.toggleSidebar(false));
+        document.getElementById('btn-expand-sidebar')?.addEventListener('click', () => this.toggleSidebar(true));
+
+        // Bottom panel collapse/expand
+        document.getElementById('btn-collapse-bottom')?.addEventListener('click', () => this.toggleBottomPanel(false));
+        document.getElementById('btn-expand-bottom')?.addEventListener('click', () => this.toggleBottomPanel(true));
 
         // Table search
         document.getElementById('table-search')?.addEventListener('input', (e) => this.filterTables(e.target.value));
@@ -2836,6 +2861,50 @@ class QueryBuilder {
             return;
         }
         this.queryExport.exportJSON(this.lastResults.rows, 'results');
+    }
+
+    // Sidebar collapse/expand
+    toggleSidebar(show) {
+        const sidebar = document.getElementById('sidebar');
+        const resizer = document.getElementById('sidebar-resizer');
+        const expandBtn = document.getElementById('btn-expand-sidebar');
+
+        if (sidebar) {
+            if (show) {
+                sidebar.classList.remove('collapsed');
+                if (resizer) resizer.style.display = '';
+                if (expandBtn) expandBtn.style.display = 'none';
+            } else {
+                sidebar.classList.add('collapsed');
+                if (resizer) resizer.style.display = 'none';
+                if (expandBtn) expandBtn.style.display = 'flex';
+            }
+
+            // Save preference
+            localStorage.setItem('qb-sidebar-collapsed', !show);
+        }
+    }
+
+    // Bottom panel collapse/expand
+    toggleBottomPanel(show) {
+        const panel = document.getElementById('bottom-panel');
+        const resizer = document.getElementById('bottom-resizer');
+        const expandBtn = document.getElementById('btn-expand-bottom');
+
+        if (panel) {
+            if (show) {
+                panel.classList.remove('collapsed');
+                if (resizer) resizer.style.display = '';
+                if (expandBtn) expandBtn.style.display = 'none';
+            } else {
+                panel.classList.add('collapsed');
+                if (resizer) resizer.style.display = 'none';
+                if (expandBtn) expandBtn.style.display = 'flex';
+            }
+
+            // Save preference
+            localStorage.setItem('qb-bottom-collapsed', !show);
+        }
     }
 
     // History methods
