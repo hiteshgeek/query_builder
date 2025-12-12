@@ -100,6 +100,13 @@ $basePath = get_base_path();
                     </svg>
                     <span>Browser</span>
                 </button>
+                <button class="mode-btn" data-mode="codegen" data-tooltip="Code Generator Mode">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                    <span>Code Gen</span>
+                </button>
             </div>
 
             <div class="app-actions">
@@ -1178,6 +1185,533 @@ $basePath = get_base_path();
                                         <polyline points="6 17 11 12 6 7"/>
                                     </svg>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Generator Panel -->
+                <div class="builder-panel query-panel codegen-panel" data-panel="codegen">
+                    <div class="panel-content codegen-panel-content">
+                        <div class="codegen-layout">
+                            <!-- Left Side: Configuration -->
+                            <div class="codegen-config-side">
+                                <!-- Table Selection -->
+                                <div class="builder-section">
+                                    <div class="section-header">
+                                        <span>SELECT TABLE</span>
+                                    </div>
+                                    <div class="table-drop-zone" id="codegen-table-drop">
+                                        <div class="placeholder">Drag a table here or double-click from sidebar</div>
+                                    </div>
+                                </div>
+
+                                <!-- Generate Options -->
+                                <div class="builder-section codegen-generate-section">
+                                    <div class="section-header">
+                                        <span>GENERATE</span>
+                                    </div>
+                                    <div class="codegen-generate-options">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="codegen-gen-model" checked>
+                                            <span>Model Class</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="codegen-gen-manager" checked>
+                                            <span>Manager Class</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Manager Methods Configuration -->
+                                <div class="builder-section codegen-manager-methods-section">
+                                    <div class="section-header">
+                                        <span>MANAGER METHODS</span>
+                                        <div class="section-actions">
+                                            <button class="btn-sm" id="btn-select-all-manager-methods">All</button>
+                                            <button class="btn-sm" id="btn-select-none-manager-methods">None</button>
+                                        </div>
+                                    </div>
+                                    <div class="codegen-manager-methods">
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Core Finders</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findById" checked><span>findById</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findOne" checked><span>findOne</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findAll" checked><span>findAll</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-find" checked><span>find</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Pagination</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-paginate" checked><span>paginate</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchPaginate" checked><span>searchPaginate</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Search</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-search" checked><span>search</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchOne" checked><span>searchOne</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Count</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-count" checked><span>count</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchCount" checked><span>searchCount</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Utility</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-exists" checked><span>exists/existsById</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-distinct" checked><span>distinct</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-pluck" checked><span>pluck</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-column" checked><span>column/ids</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findByIds" checked><span>findByIds</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-firstLast" checked><span>first/last</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Aggregates</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-aggregates" checked><span>sum/avg/min/max</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Batch Operations</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-deleteWhere" checked><span>deleteWhere</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-updateWhere" checked><span>updateWhere</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Raw Query</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-raw" checked><span>raw/rawOne</span></label>
+                                        </div>
+                                        <div class="manager-methods-group">
+                                            <span class="methods-group-label">Documentation</span>
+                                            <label class="checkbox-label"><input type="checkbox" id="mgr-usage-examples"><span>Usage Examples</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Model Configuration -->
+                                <div class="builder-section codegen-config-section">
+                                    <div class="section-header">
+                                        <span>CONFIGURATION</span>
+                                    </div>
+                                    <div class="codegen-config-form" id="codegen-config-form">
+                                        <div class="form-group">
+                                            <label for="codegen-class-name">Class Name</label>
+                                            <input type="text" id="codegen-class-name" class="form-input" placeholder="e.g., User, Product">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="codegen-table-constant">Table Constant</label>
+                                            <input type="text" id="codegen-table-constant" class="form-input" placeholder="e.g., DB_TBL_USERS">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="codegen-extends">Extends</label>
+                                            <input type="text" id="codegen-extends" class="form-input" placeholder="e.g., BaseModel">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="codegen-implements">Implements</label>
+                                            <input type="text" id="codegen-implements" class="form-input" placeholder="e.g., DatabaseObject" value="DatabaseObject">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="codegen-namespace">Namespace</label>
+                                            <input type="text" id="codegen-namespace" class="form-input" placeholder="e.g., App\\Models (optional)">
+                                        </div>
+                                        <div class="codegen-options">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="codegen-getters" checked>
+                                                <span>Getters</span>
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="codegen-setters" checked>
+                                                <span>Setters</span>
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="codegen-crud" checked>
+                                                <span>CRUD</span>
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="codegen-constructor" checked>
+                                                <span>Constructor Load</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Column Selection -->
+                                <div class="builder-section codegen-columns-section">
+                                    <div class="section-header">
+                                        <span>COLUMNS</span>
+                                        <div class="section-actions">
+                                            <button class="btn-sm" id="btn-select-all-codegen-cols">All</button>
+                                            <button class="btn-sm" id="btn-select-none-codegen-cols">None</button>
+                                        </div>
+                                    </div>
+                                    <div id="codegen-columns-container">
+                                        <div class="placeholder">Select a table to configure columns</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Side: Code Preview with Tabs -->
+                            <div class="codegen-code-side">
+                                <div class="codegen-code-header">
+                                    <div class="codegen-code-tabs">
+                                        <button class="codegen-tab active" data-tab="model">Model</button>
+                                        <button class="codegen-tab" data-tab="manager">Manager</button>
+                                        <button class="codegen-tab" data-tab="database">Database Ref</button>
+                                    </div>
+                                    <div class="codegen-code-actions">
+                                        <select id="codegen-php-version" class="form-input form-input-sm">
+                                            <option value="5.4" selected>PHP 5.4</option>
+                                            <option value="8.2">PHP 8.2</option>
+                                        </select>
+                                        <button class="btn-sm" id="btn-copy-codegen" data-tooltip="Copy Code">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                            </svg>
+                                        </button>
+                                        <button class="btn-sm btn-primary-sm" id="btn-download-codegen" data-tooltip="Download">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                                <polyline points="7 10 12 15 17 10"/>
+                                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Tab Contents -->
+                                <div class="codegen-tab-content active" data-tab-content="model">
+                                    <div class="codegen-code-preview" id="codegen-model-preview">
+                                        <pre><code class="language-php">// Select a table to generate Model class</code></pre>
+                                    </div>
+                                </div>
+                                <div class="codegen-tab-content" data-tab-content="manager">
+                                    <div class="codegen-code-preview" id="codegen-manager-preview">
+                                        <pre><code class="language-php">// Select a table to generate Manager class</code></pre>
+                                    </div>
+                                </div>
+                                <div class="codegen-tab-content" data-tab-content="database">
+                                    <div class="codegen-code-preview" id="codegen-database-preview">
+                                        <pre><code class="language-php">&lt;?php
+
+/**
+ * A Database class implementation for SQLi
+ *
+ * @author Sohil Gupta
+ * @since 20150228
+ */
+class SQLiDatabase implements Database
+{
+
+    private $connection;
+    public $resultset, $last_query, $current_row, $field_value, $mysql_error, $mysql_errorno;
+
+    /**
+     * Automatically connect to the database in the constructor
+     */
+    public function __construct($connect = true)
+    {
+        if ($connect) {
+            return $this-&gt;connect();
+        }
+    }
+
+    public function getLastQuery()
+    {
+        return $this-&gt;last_query;
+    }
+
+    /**
+     * Connect to the database
+     *
+     * @return Boolean - Whether the connection was successful
+     */
+    public function tryConnect()
+    {
+        $conn = mysqli_connect(BaseConfig::DB_SERVER, BaseConfig::DB_USER, BaseConfig::DB_PASS);
+        if ($conn) {
+            $db_select = mysqli_select_db($conn, BaseConfig::DB_NAME);
+            if ($db_select) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Connect to the database
+     */
+    public function connect()
+    {
+        $this-&gt;connection = mysqli_connect(BaseConfig::DB_SERVER, BaseConfig::DB_USER, BaseConfig::DB_PASS);
+        if ($this-&gt;connection) {
+            $db_select = mysqli_select_db($this-&gt;connection, BaseConfig::DB_NAME);
+            if ($db_select) {
+                mysqli_set_charset($this-&gt;connection, "utf8");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Select a database to use
+     *
+     * @param $database The name of the database
+     */
+    public function selectDatabase($database)
+    {
+        if ($database) {
+            /* Select the specified database */
+            mysqli_select_db($this-&gt;connection, $database);
+        } else {
+            /* If no database specified, select the default database */
+            mysqli_select_db($this-&gt;connection, BaseConfig::DB_NAME);
+        }
+    }
+
+    /**
+     * Queries the database to produce a result
+     *
+     * @param $query The SQL statement to be executed
+     * @param $variables An array of variables to replace in the query, these are passed in an array so that they can be escaped
+     *
+     * @example query("SELECT * FROM user WHERE name LIKE ':name'", array(":name" =&gt; "John Smith"))
+     */
+    public function query($query, $variables = array(), $log_query = false)
+    {
+        // hprint($variables);
+        foreach ((array) $variables as $key =&gt; $value) {
+            $value = mysqli_real_escape_string($this-&gt;connection, $value);
+            /*
+                 *  If String Value is Null by default else append quotes in string
+                 */
+            if (strpos($key, ":::") === 0) {
+                $value = "'" . $value . "'";
+            }
+            // preg_quote to escape special chars in $key
+            // $pattern = '/' . preg_quote($key, '/') . '\b/';
+            // $query = preg_replace($pattern, $value, $query);
+            $query = str_replace($key, $value, $query);
+        }
+
+        $this-&gt;last_query = $query;
+        // hprint($this-&gt;last_query);
+        // die;
+        $this-&gt;resultset = mysqli_query($this-&gt;connection, $query);
+        $this-&gt;mysql_error = mysqli_error($this-&gt;connection);
+        $this-&gt;mysql_errorno = mysqli_errno($this-&gt;connection);
+        if (!$this-&gt;resultset) {
+            /* If we had an error while making a query, log it into the database */
+
+            $backtrace = debug_backtrace();
+            unset($backtrace[0]);
+
+            //                $type = "ADMIN";
+            //                $error_type = "MYSQL_ERROR";
+            //                $message = $this-&gt;escapeString("ERROR: " . mysqli_error($this-&gt;connection) . " LAST_QUERY: $this-&gt;last_query");
+            //                $url = htmlentities(urlencode("//{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}"), ENT_QUOTES, 'UTF-8');
+            //                $data = json_encode($backtrace);
+            //                $user_agent_string = $_SERVER['HTTP_USER_AGENT'];
+            //                $user_id = (session::loggedInUid()) ? session::loggedInUid() : NULL;
+            //                $ip = $_SERVER['REMOTE_ADDR'];
+            //                $log_status = 1;
+            //                $error_query = "INSERT INTO system_log (type,error_type,message,url,data,user_agent_string,user_id,ip,log_status) "
+            //                        . " VALUES ('$type', '$error_type','$message','$url','$data','$user_agent_string','$user_id','$ip',$log_status)";
+            //                $res = mysqli_query($this-&gt;connection, $error_query);
+        }
+        if ($log_query) {
+            $message = $this-&gt;escapeString(htmlentities($this-&gt;last_query));
+            $res = mysqli_query($this-&gt;connection, "INSERT INTO system_log (type, message,ip) VALUES ('mysqli_query', '$message','" . $_SERVER['REMOTE_ADDR'] . "')");
+        }
+        return $this-&gt;resultset;
+    }
+
+    /**
+     * Quickly update a field or fields in a table
+     *
+     * @param $table The table to update
+     * @param $fields_values An associative array with the key being the fieldname and the value is the value
+     * @param $where The where clause to limit the update
+     */
+    public function updateFields($table, $fields_values, $where = "1=1")
+    {
+        $sql = "UPDATE $table SET ";
+        $last_element = count($fields_values);
+        $count = 0;
+        $values = array();
+        foreach ($fields_values as $key =&gt; $value) {
+            $count++;
+            $s = " $key='::$count::', ";
+            $values["::$count::"] = $value;
+            if ($last_element == $count) {
+                $s = " $key='::$count::'";
+            }
+            $sql .= $s;
+        }
+        $sql .= " WHERE $where";
+        $res = $this-&gt;query($sql, $values, true);
+        return $res;
+    }
+
+    /**
+     * Quickly grab the data from a field from a specified table
+     *
+     * @param $table The name of the table to update
+     * @param $field_name The field which to return
+     * @param $where The where clause to limit the resultset
+     *
+     * @return The field value for the requested field
+     */
+    public function getFieldValue($table, $field_name, $where = "1=1")
+    {
+        $sql = "SELECT $field_name FROM $table WHERE $where LIMIT 1";
+        $res = $this-&gt;fetchObject($this-&gt;query($sql));
+        if ($res) {
+            $this-&gt;field_value = $field_name;
+            return $res-&gt;$field_name;
+        }
+        return false;
+    }
+
+    /**
+     * Method to fetch a row from the resultset in the form of an array
+     *
+     * @param $resultset The result set from which to fetch the row
+     */
+    public function fetchArray($resultset = null)
+    {
+        if (!$resultset) {
+            return false;
+        }
+        $this-&gt;current_row = mysqli_fetch_array($resultset);
+        return $this-&gt;current_row;
+    }
+
+    public function fetchAssocArray($resultset = null)
+    {
+        if (!$resultset) {
+            return false;
+        }
+        $this-&gt;current_row = mysqli_fetch_assoc($resultset);
+        return $this-&gt;current_row;
+    }
+
+    /**
+     * Method to fetch a row from the resultset in the form of an object
+     *
+     * @param $resultset The result set from which to fetch the row
+     */
+    public function fetchObject($resultset = null)
+    {
+        ini_set('max_execution_time', 0);
+        if (!$resultset) {
+            return false;
+        }
+        $this-&gt;current_row = mysqli_fetch_object($resultset);
+        return $this-&gt;current_row;
+    }
+
+    public function resultNumRows($resultset = null)
+    {
+        if (!$resultset) {
+            $resultset = $this-&gt;resultset;
+        }
+        return mysqli_num_rows($resultset);
+    }
+
+    public function lastInsertId()
+    {
+        return mysqli_insert_id($this-&gt;connection);
+    }
+
+    public function escapeString($value)
+    {
+        if (function_exists('get_magic_quotes_gpc') &amp;&amp; get_magic_quotes_gpc()) {
+            /* undo any magic quote effects so mysqli_real_escape_string can do the work */
+            $value = stripslashes($value);
+        } else {
+            $value = stripslashes($value);
+        }
+        return mysqli_real_escape_string($this-&gt;connection, $value);
+    }
+
+    /**
+     * Set Auto Commit for transactions
+     */
+    public function autoCommit($status = false)
+    {
+        mysqli_autocommit($this-&gt;connection, $status);
+    }
+
+    /**
+     * Roll back during transaction
+     */
+    public function rollBack()
+    {
+        mysqli_rollback($this-&gt;connection);
+        /* If we had an error while making a query, log it into the database */
+        $backtrace = debug_backtrace();
+        unset($backtrace[0]);
+
+        //            $type = "ADMIN";
+        //            $error_type = "MYSQL_ERROR";
+        //            $message = $this-&gt;escapeString("ERROR: " . mysqli_error($this-&gt;connection) . " LAST_QUERY: $this-&gt;last_query");
+        //            $url = htmlspecialchars("//{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}", ENT_QUOTES, 'UTF-8');
+        //            $data = json_encode($backtrace);
+        //            $user_agent_string = $_SERVER['HTTP_USER_AGENT'];
+        //            $user_id = (session::loggedInUid()) ? session::loggedInUid() : NULL;
+        //            $ip = $_SERVER['REMOTE_ADDR'];
+        //            $log_status = 1;
+        //            $error_query = "INSERT INTO system_log (type,error_type,message,url,data,user_agent_string,user_id,ip,log_status) "
+        //                    . " VALUES ('$type', '$error_type','$message','$url','$data','$user_agent_string','$user_id','$ip',$log_status)";
+        //            $res = mysqli_query($this-&gt;connection, $error_query);
+        mysqli_commit($this-&gt;connection);
+    }
+
+    /**
+     * Commit
+     */
+    public function commit()
+    {
+        mysqli_commit($this-&gt;connection);
+    }
+
+    /**
+     * Affected Rows
+     */
+    public function affectedRows()
+    {
+        return mysqli_affected_rows($this-&gt;connection);
+    }
+
+    public function executeTransactions($args)
+    {
+        $this-&gt;autoCommit(false);
+        foreach ($args as $value) {
+            if ($value['object']-&gt;$value['function']()) {
+                $this-&gt;rollBack();
+                $this-&gt;autoCommit(true);
+                return false;
+            }
+        }
+        $this-&gt;commit();
+        $this-&gt;autoCommit(true);
+        return true;
+    }
+
+    /**
+     * getting mysql error description of last sql operation
+     *
+     * @return String Mysql error string description of last mysql operation
+     */
+    public function getMysqlError()
+    {
+        return $this-&gt;mysql_error;
+    }
+
+    public function getMysqlErrorNo()
+    {
+        return $this-&gt;mysql_errorno;
+    }
+}</code></pre>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

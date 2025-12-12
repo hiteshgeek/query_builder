@@ -4,6 +4,7 @@
 
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
+import php from 'highlight.js/lib/languages/php';
 import ThemeManager from './ThemeManager.js';
 import InsertBuilder from './InsertBuilder.js';
 import UpdateBuilder from './UpdateBuilder.js';
@@ -22,8 +23,13 @@ import savedQueries from './SavedQueries.js';
 import CreateTableBuilder from './CreateTableBuilder.js';
 import DataBrowser from './DataBrowser.js';
 import CustomQuery from './CustomQuery.js';
+import CodeGenerator from './CodeGenerator.js';
 
 hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('php', php);
+
+// Make hljs available globally for other modules
+window.hljs = hljs;
 
 // Initialize theme manager globally
 const themeManager = new ThemeManager();
@@ -64,6 +70,7 @@ class QueryBuilder {
         this.alterBuilder = null;
         this.createTableBuilder = null;
         this.dataBrowser = null;
+        this.codeGenerator = null;
         this.userManager = null;
         this.permissionManager = null;
 
@@ -226,9 +233,35 @@ class QueryBuilder {
                 this.dataBrowser.selectTable(savedTable);
                 this.highlightBrowsingTable(savedTable);
             }
+        } else if (mode === 'codegen') {
+            // Switch to codegen query type internally
+            this.currentQueryType = 'codegen';
+
+            // Show codegen panel, hide others
+            document.querySelectorAll('.query-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.dataset.panel === 'codegen');
+            });
+
+            // Hide query type tabs in codegen mode
+            const queryTypeTabs = document.querySelector('.query-type-tabs');
+            if (queryTypeTabs) {
+                queryTypeTabs.style.display = 'none';
+            }
+
+            // Remove browsing highlight
+            document.querySelectorAll('.table-item.browsing').forEach(el => {
+                el.classList.remove('browsing');
+            });
         } else {
-            // Switch back to select if currently on browse
-            if (this.currentQueryType === 'browse') {
+            // Builder mode
+            // Show query type tabs
+            const queryTypeTabs = document.querySelector('.query-type-tabs');
+            if (queryTypeTabs) {
+                queryTypeTabs.style.display = '';
+            }
+
+            // Switch back to select if currently on browse or codegen
+            if (this.currentQueryType === 'browse' || this.currentQueryType === 'codegen') {
                 this.currentQueryType = 'select';
                 // Activate the SELECT tab
                 document.querySelectorAll('.query-type-tab').forEach(tab => {
@@ -301,6 +334,9 @@ class QueryBuilder {
             (sql) => this.updateCustomSQLPreview(sql),
             (results) => this.handleCustomQueryResults(results)
         );
+
+        // Initialize Code Generator
+        this.codeGenerator = new CodeGenerator(this);
 
         // Initialize Permission Manager (needs to be before UserManager)
         this.permissionManager = new PermissionManager(this.typeToConfirm);
@@ -1394,6 +1430,11 @@ class QueryBuilder {
                     this.renderDropZoneTable(document.getElementById('alter-table-drop'), tableName);
                 }
                 break;
+            case 'codegen':
+                if (this.codeGenerator) {
+                    this.codeGenerator.selectTable(tableName);
+                }
+                break;
             default:
                 this.addTable(tableName);
         }
@@ -1487,7 +1528,8 @@ class QueryBuilder {
                 'create': 'Create Table',
                 'custom': 'Execute Query',
                 'browse': 'Refresh Data',
-                'users': 'Refresh Users'
+                'users': 'Refresh Users',
+                'codegen': 'Generate Code'
             };
             runBtn.innerHTML = `
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1799,11 +1841,7 @@ class QueryBuilder {
                         ${table.columns.map(col => `
                             <div class="column-item ${col.key_type === 'PRI' ? 'primary-key' : ''} ${col.foreign_key ? 'foreign-key' : ''}"
                                  data-table="${fullTableName}" data-column="${col.name}">
-                                <span class="key-icon-container">${col.key_type === 'PRI' ? `<svg class="key-icon primary-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-                                </svg>` : ''}${col.foreign_key ? `<svg class="key-icon foreign-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-                                </svg>` : ''}</span>
+                                <span class="key-icon-container">${col.key_type === 'PRI' ? `<svg class="key-icon primary-key-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h3v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg>` : ''}${col.foreign_key ? `<svg class="key-icon foreign-key-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h3v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg>` : ''}</span>
                                 <span class="column-name">${col.name}</span>
                                 <span class="column-type">${col.data_type}</span>
                             </div>
