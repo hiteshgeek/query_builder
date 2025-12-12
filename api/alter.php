@@ -33,6 +33,7 @@ if (empty($input['operations']) || !is_array($input['operations'])) {
 
 $table = $input['table'];
 $operations = $input['operations'];
+$database = $input['database'] ?? null;
 
 // Validate table name (prevent SQL injection)
 if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
@@ -41,6 +42,12 @@ if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
 
 try {
     $db = Database::getInstance();
+
+    // Switch to specified database if provided
+    if ($database) {
+        $db->switchDatabase($database);
+    }
+
     $pdo = $db->getConnection();
 
     // Verify table exists

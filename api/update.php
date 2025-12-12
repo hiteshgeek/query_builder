@@ -37,6 +37,7 @@ if (empty($input['set']) || !is_array($input['set'])) {
 $table = $input['table'];
 $setValues = $input['set'];
 $conditions = $input['conditions'] ?? [];
+$database = $input['database'] ?? null;
 
 // Validate table name (prevent SQL injection)
 if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
@@ -45,6 +46,12 @@ if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
 
 try {
     $db = Database::getInstance();
+
+    // Switch to specified database if provided
+    if ($database) {
+        $db->switchDatabase($database);
+    }
+
     $pdo = $db->getConnection();
 
     // Get table columns to validate input

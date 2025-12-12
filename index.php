@@ -37,6 +37,35 @@ $basePath = get_base_path();
                 </svg>
                 <span>Query Builder</span>
             </div>
+
+            <!-- Database Selector -->
+            <div class="database-selector" id="database-selector">
+                <button class="database-selector-btn" id="database-selector-btn" data-tooltip="Select Database">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    </svg>
+                    <span class="database-name" id="current-database-name">Loading...</span>
+                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div class="database-dropdown" id="database-dropdown">
+                    <div class="database-dropdown-header">
+                        <input type="text" id="database-search" placeholder="Search databases...">
+                        <button class="btn-icon btn-sm" id="btn-create-database" data-tooltip="Create Database">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="database-list" id="database-list">
+                        <div class="loading">Loading databases...</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="app-actions">
                 <!-- Saved Queries Toggle -->
                 <button class="btn-icon" id="btn-toggle-saved" data-tooltip="Saved Queries">
@@ -201,6 +230,14 @@ $basePath = get_base_path();
                             <path d="M9 12h6M12 9v6"/>
                         </svg>
                         ALTER
+                    </button>
+                    <button class="query-type-tab" data-type="create">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        CREATE
                     </button>
                     <span class="query-type-divider"></span>
                     <button class="query-type-tab" data-type="users">
@@ -658,6 +695,166 @@ $basePath = get_base_path();
                     </div>
                 </div>
 
+                <!-- CREATE Table Builder Panel -->
+                <div class="builder-panel query-panel create-panel" data-panel="create">
+                    <div class="panel-header">
+                        <h3>CREATE Table</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-create" data-tooltip="Clear CREATE form">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
+                    </div>
+                    <div class="panel-content create-panel-content">
+                        <!-- Table Properties Section -->
+                        <div class="builder-section">
+                            <div class="section-header">
+                                <span>TABLE PROPERTIES</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="form-row">
+                                    <div class="form-group form-group-lg">
+                                        <label for="create-table-name">Table Name <span class="required">*</span></label>
+                                        <input type="text" id="create-table-name" placeholder="e.g., users, products, orders">
+                                    </div>
+                                </div>
+                                <div class="form-row form-row-3">
+                                    <div class="form-group">
+                                        <label for="create-table-engine">Storage Engine</label>
+                                        <select id="create-table-engine">
+                                            <option value="InnoDB" selected>InnoDB</option>
+                                            <option value="MyISAM">MyISAM</option>
+                                            <option value="MEMORY">MEMORY</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="create-table-charset">Character Set</label>
+                                        <select id="create-table-charset">
+                                            <option value="utf8mb4" selected>utf8mb4</option>
+                                            <option value="utf8">utf8</option>
+                                            <option value="latin1">latin1</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="create-table-collation">Collation</label>
+                                        <select id="create-table-collation">
+                                            <option value="utf8mb4_unicode_ci" selected>utf8mb4_unicode_ci</option>
+                                            <option value="utf8mb4_general_ci">utf8mb4_general_ci</option>
+                                            <option value="utf8_general_ci">utf8_general_ci</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Columns Section -->
+                        <div class="builder-section">
+                            <div class="section-header">
+                                <span>COLUMNS</span>
+                                <div class="section-actions">
+                                    <button class="btn-sm" id="btn-add-column-template" data-tooltip="Add from template">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                        </svg>
+                                        Templates
+                                    </button>
+                                    <button class="btn-sm btn-primary-sm" id="btn-add-create-column">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Column
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="section-body">
+                                <div id="create-columns-container">
+                                    <div class="placeholder">No columns defined. Click "Add Column" or use a template to get started.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indexes Section -->
+                        <div class="builder-section collapsible">
+                            <div class="section-header collapsible-header">
+                                <span>INDEXES</span>
+                                <div class="section-actions">
+                                    <button class="btn-sm btn-primary-sm" id="btn-add-create-index">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Index
+                                    </button>
+                                    <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="section-body collapsible-body">
+                                <div id="create-indexes-container">
+                                    <div class="placeholder">No additional indexes. Primary key is defined automatically from columns.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Foreign Keys Section -->
+                        <div class="builder-section collapsible">
+                            <div class="section-header collapsible-header">
+                                <span>FOREIGN KEYS</span>
+                                <div class="section-actions">
+                                    <button class="btn-sm btn-primary-sm" id="btn-add-create-fk">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Foreign Key
+                                    </button>
+                                    <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="section-body collapsible-body">
+                                <div id="create-fk-container">
+                                    <div class="placeholder">No foreign keys defined.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Copy Structure Section -->
+                        <div class="builder-section collapsible collapsed">
+                            <div class="section-header collapsible-header">
+                                <span>COPY FROM EXISTING TABLE</span>
+                                <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            <div class="section-body collapsible-body">
+                                <div class="form-row">
+                                    <div class="form-group form-group-lg">
+                                        <label for="create-clone-table">Source Table</label>
+                                        <select id="create-clone-table">
+                                            <option value="">Select a table to copy structure...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group form-group-sm">
+                                        <label>&nbsp;</label>
+                                        <button class="btn btn-secondary" id="btn-clone-structure">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                            </svg>
+                                            Copy Structure
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </div>
 
@@ -864,6 +1061,64 @@ $basePath = get_base_path();
                         <polyline points="7 3 7 8 15 8"/>
                     </svg>
                     Save Query
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Database Modal -->
+    <div class="modal" id="create-database-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-create-database">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Database</h3>
+                <button class="btn-icon modal-close" id="btn-cancel-create-database">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-database-name">Database Name <span class="required">*</span></label>
+                    <input type="text" id="new-database-name" placeholder="e.g., my_database" required pattern="^[a-zA-Z_][a-zA-Z0-9_]*$">
+                    <small class="form-hint">Letters, numbers, and underscores only. Must start with a letter or underscore.</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new-database-charset">Character Set</label>
+                        <select id="new-database-charset">
+                            <option value="utf8mb4" selected>utf8mb4 (recommended)</option>
+                            <option value="utf8">utf8</option>
+                            <option value="latin1">latin1</option>
+                            <option value="ascii">ascii</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-database-collation">Collation</label>
+                        <select id="new-database-collation">
+                            <option value="utf8mb4_unicode_ci" selected>utf8mb4_unicode_ci</option>
+                            <option value="utf8mb4_general_ci">utf8mb4_general_ci</option>
+                            <option value="utf8_general_ci">utf8_general_ci</option>
+                            <option value="latin1_swedish_ci">latin1_swedish_ci</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>SQL Preview</label>
+                    <pre class="sql-preview-mini" id="create-database-sql-preview"><code class="language-sql"></code></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-create-database-footer">Cancel</button>
+                <button class="btn btn-primary" id="btn-do-create-database">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    </svg>
+                    Create Database
                 </button>
             </div>
         </div>

@@ -67,3 +67,22 @@ function json_success(mixed $data, string $message = 'Success'): void
 {
     json_response(['error' => false, 'message' => $message, 'data' => $data]);
 }
+
+// Get database parameter from request (query string or JSON body)
+function get_database_param(): ?string
+{
+    // First check query string
+    if (!empty($_GET['database'])) {
+        return $_GET['database'];
+    }
+
+    // Then check JSON body (for POST requests)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!empty($input['database'])) {
+            return $input['database'];
+        }
+    }
+
+    return null;
+}

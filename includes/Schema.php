@@ -7,10 +7,26 @@ class Schema
     private Database $db;
     private string $databaseName;
 
-    public function __construct(Database $db)
+    public function __construct(Database $db, ?string $database = null)
     {
         $this->db = $db;
-        $this->databaseName = $db->getDatabaseName();
+        $this->databaseName = $database ?? $db->getCurrentDatabase();
+    }
+
+    /**
+     * Get the database name this schema is for
+     */
+    public function getDatabaseName(): string
+    {
+        return $this->databaseName;
+    }
+
+    /**
+     * Set/change the database name
+     */
+    public function setDatabaseName(string $database): void
+    {
+        $this->databaseName = $database;
     }
 
     /**

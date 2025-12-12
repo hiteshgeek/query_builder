@@ -19,6 +19,7 @@ import confirmModal from './ConfirmModal.js';
 import tooltip from './Tooltip.js';
 import resizeManager from './ResizeManager.js';
 import savedQueries from './SavedQueries.js';
+import CreateTableBuilder from './CreateTableBuilder.js';
 
 hljs.registerLanguage('sql', sql);
 
@@ -58,6 +59,7 @@ class QueryBuilder {
         this.updateBuilder = null;
         this.deleteBuilder = null;
         this.alterBuilder = null;
+        this.createTableBuilder = null;
         this.userManager = null;
         this.permissionManager = null;
 
@@ -69,11 +71,17 @@ class QueryBuilder {
         // Type-to-confirm instance
         this.typeToConfirm = typeToConfirm;
 
+        // Database selection state
+        this.databases = [];
+        this.currentDatabase = localStorage.getItem('qb-current-database') || null;
+
         this.init();
     }
 
     async init() {
         this.bindEvents();
+        this.bindDatabaseEvents();
+        await this.loadDatabases();
         await this.loadSchema();
         this.initSubBuilders();
     }
@@ -109,6 +117,14 @@ class QueryBuilder {
         }, this.typeToConfirm);
         if (this.schema) {
             this.alterBuilder.updateSchema(this.schema);
+        }
+
+        // Initialize CREATE TABLE builder
+        this.createTableBuilder = new CreateTableBuilder(this.schema, (sql) => {
+            this.updateCreateSQLPreview(sql);
+        });
+        if (this.schema) {
+            this.createTableBuilder.updateSchema(this.schema);
         }
 
         // Initialize Permission Manager (needs to be before UserManager)
@@ -149,6 +165,10 @@ class QueryBuilder {
         this.updateBottomPanelSQL(sql);
     }
 
+    updateCreateSQLPreview(sql) {
+        this.updateBottomPanelSQL(sql);
+    }
+
     updateBottomPanelSQL(sql) {
         const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
         if (bottomPreviewEl) {
@@ -186,6 +206,7 @@ class QueryBuilder {
         document.getElementById('btn-clear-update')?.addEventListener('click', () => this.clearUpdate());
         document.getElementById('btn-clear-delete')?.addEventListener('click', () => this.clearDelete());
         document.getElementById('btn-clear-alter')?.addEventListener('click', () => this.clearAlter());
+        document.getElementById('btn-clear-create')?.addEventListener('click', () => this.clearCreate());
 
         // Add controls
         document.getElementById('btn-add-join')?.addEventListener('click', () => this.addJoinRow());
@@ -320,6 +341,268 @@ class QueryBuilder {
         // Close modal on backdrop click
         const saveModal = document.getElementById('save-query-modal');
         saveModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => this.hideSaveQueryModal());
+    }
+
+    // ========== Database Selector Methods ==========
+
+    bindDatabaseEvents() {
+        const selectorBtn = document.getElementById('database-selector-btn');
+        const dropdown = document.getElementById('database-dropdown');
+        const searchInput = document.getElementById('database-search');
+        const createBtn = document.getElementById('btn-create-database');
+
+        // Toggle dropdown
+        selectorBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDatabaseDropdown();
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.database-selector')) {
+                this.closeDatabaseDropdown();
+            }
+        });
+
+        // Search databases
+        searchInput?.addEventListener('input', (e) => {
+            this.filterDatabases(e.target.value);
+        });
+
+        // Create database button
+        createBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showCreateDatabaseModal();
+        });
+
+        // Close dropdown on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeDatabaseDropdown();
+            }
+        });
+
+        // Create Database modal events
+        document.getElementById('btn-cancel-create-database')?.addEventListener('click', () => this.hideCreateDatabaseModal());
+        document.getElementById('btn-cancel-create-database-footer')?.addEventListener('click', () => this.hideCreateDatabaseModal());
+        document.getElementById('btn-do-create-database')?.addEventListener('click', () => this.createDatabase());
+
+        // Update SQL preview on input change
+        document.getElementById('new-database-name')?.addEventListener('input', () => this.updateCreateDatabasePreview());
+        document.getElementById('new-database-charset')?.addEventListener('change', () => this.updateCreateDatabasePreview());
+        document.getElementById('new-database-collation')?.addEventListener('change', () => this.updateCreateDatabasePreview());
+
+        // Close modal on backdrop click
+        const createDbModal = document.getElementById('create-database-modal');
+        createDbModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => this.hideCreateDatabaseModal());
+    }
+
+    toggleDatabaseDropdown() {
+        const dropdown = document.getElementById('database-dropdown');
+        const btn = document.getElementById('database-selector-btn');
+
+        if (dropdown?.classList.contains('show')) {
+            this.closeDatabaseDropdown();
+        } else {
+            dropdown?.classList.add('show');
+            btn?.classList.add('active');
+            document.getElementById('database-search')?.focus();
+        }
+    }
+
+    closeDatabaseDropdown() {
+        document.getElementById('database-dropdown')?.classList.remove('show');
+        document.getElementById('database-selector-btn')?.classList.remove('active');
+    }
+
+    async loadDatabases() {
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/databases.php`);
+            const data = await response.json();
+
+            if (!data.error && data.data) {
+                // Extract database names from the response objects
+                this.databases = data.data.databases.map(db => typeof db === 'object' ? db.name : db);
+                const serverCurrent = data.data.current;
+
+                // If no current database is set, use the one from the server
+                if (!this.currentDatabase && serverCurrent) {
+                    this.currentDatabase = serverCurrent;
+                    localStorage.setItem('qb-current-database', this.currentDatabase);
+                }
+
+                // If saved database doesn't exist in list, use server default
+                if (this.currentDatabase && !this.databases.includes(this.currentDatabase)) {
+                    this.currentDatabase = serverCurrent;
+                    localStorage.setItem('qb-current-database', this.currentDatabase);
+                }
+
+                this.renderDatabaseList();
+                this.updateCurrentDatabaseDisplay();
+            } else {
+                console.error('Failed to load databases:', data.message);
+                toast.error('Failed to load databases');
+            }
+        } catch (error) {
+            console.error('Error loading databases:', error);
+            toast.error('Failed to load databases');
+        }
+    }
+
+    renderDatabaseList(filter = '') {
+        const listEl = document.getElementById('database-list');
+        if (!listEl) return;
+
+        const filteredDbs = filter
+            ? this.databases.filter(db => db.toLowerCase().includes(filter.toLowerCase()))
+            : this.databases;
+
+        if (filteredDbs.length === 0) {
+            listEl.innerHTML = `<div class="loading">No databases found</div>`;
+            return;
+        }
+
+        listEl.innerHTML = filteredDbs.map(db => `
+            <div class="database-item ${db === this.currentDatabase ? 'active' : ''}" data-database="${db}">
+                <svg class="database-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+                <span class="database-item-name">${db}</span>
+                <svg class="database-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+        `).join('');
+
+        // Bind click events
+        listEl.querySelectorAll('.database-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.switchDatabase(item.dataset.database);
+            });
+        });
+    }
+
+    filterDatabases(query) {
+        this.renderDatabaseList(query);
+    }
+
+    updateCurrentDatabaseDisplay() {
+        const nameEl = document.getElementById('current-database-name');
+        if (nameEl) {
+            nameEl.textContent = this.currentDatabase || 'Select Database';
+        }
+    }
+
+    async switchDatabase(dbName) {
+        if (dbName === this.currentDatabase) {
+            this.closeDatabaseDropdown();
+            return;
+        }
+
+        try {
+            // Switch database on server
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/databases.php`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: dbName })
+            });
+
+            const data = await response.json();
+
+            if (!data.error) {
+                this.currentDatabase = dbName;
+                localStorage.setItem('qb-current-database', dbName);
+                this.updateCurrentDatabaseDisplay();
+                this.renderDatabaseList();
+                this.closeDatabaseDropdown();
+
+                // Clear current query state and reload schema
+                this.clearAll();
+                await this.loadSchema();
+
+                toast.success(`Switched to database: ${dbName}`);
+            } else {
+                toast.error(data.message || 'Failed to switch database');
+            }
+        } catch (error) {
+            console.error('Error switching database:', error);
+            toast.error('Failed to switch database');
+        }
+    }
+
+    showCreateDatabaseModal() {
+        this.closeDatabaseDropdown();
+        const modal = document.getElementById('create-database-modal');
+        if (modal) {
+            modal.classList.add('active');
+            document.getElementById('new-database-name')?.focus();
+            this.updateCreateDatabasePreview();
+        }
+    }
+
+    hideCreateDatabaseModal() {
+        const modal = document.getElementById('create-database-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            // Clear form
+            document.getElementById('new-database-name').value = '';
+        }
+    }
+
+    updateCreateDatabasePreview() {
+        const name = document.getElementById('new-database-name')?.value || 'database_name';
+        const charset = document.getElementById('new-database-charset')?.value || 'utf8mb4';
+        const collation = document.getElementById('new-database-collation')?.value || 'utf8mb4_unicode_ci';
+
+        const sql = `CREATE DATABASE \`${name}\`\n  CHARACTER SET ${charset}\n  COLLATE ${collation};`;
+
+        const previewEl = document.querySelector('#create-database-sql-preview code');
+        if (previewEl) {
+            previewEl.textContent = sql;
+            hljs.highlightElement(previewEl);
+        }
+    }
+
+    async createDatabase() {
+        const name = document.getElementById('new-database-name')?.value?.trim();
+        const charset = document.getElementById('new-database-charset')?.value || 'utf8mb4';
+        const collation = document.getElementById('new-database-collation')?.value || 'utf8mb4_unicode_ci';
+
+        if (!name) {
+            toast.warning('Please enter a database name');
+            return;
+        }
+
+        // Validate name
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+            toast.error('Invalid database name. Use letters, numbers, and underscores only.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/databases.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, charset, collation })
+            });
+
+            const data = await response.json();
+
+            if (!data.error) {
+                toast.success(`Database "${name}" created successfully`);
+                this.hideCreateDatabaseModal();
+                await this.loadDatabases();
+                // Switch to the new database
+                await this.switchDatabase(name);
+            } else {
+                toast.error(data.message || 'Failed to create database');
+            }
+        } catch (error) {
+            console.error('Error creating database:', error);
+            toast.error('Failed to create database');
+        }
     }
 
     toggleSavedQueries(show = null) {
@@ -761,7 +1044,8 @@ class QueryBuilder {
         tablesList.innerHTML = '<div class="loading">Loading schema...</div>';
 
         try {
-            const response = await fetch(`${window.APP_CONFIG.apiBase}/schema.php`);
+            const dbParam = this.currentDatabase ? `?database=${encodeURIComponent(this.currentDatabase)}` : '';
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/schema.php${dbParam}`);
             const result = await response.json();
 
             if (result.error) {
@@ -783,6 +1067,9 @@ class QueryBuilder {
             }
             if (this.alterBuilder) {
                 this.alterBuilder.updateSchema(this.schema);
+            }
+            if (this.createTableBuilder) {
+                this.createTableBuilder.updateSchema(this.schema);
             }
         } catch (error) {
             tablesList.innerHTML = `<div class="loading">Error: ${error.message}</div>`;
@@ -3096,6 +3383,12 @@ class QueryBuilder {
         }
     }
 
+    clearCreate() {
+        if (this.createTableBuilder) {
+            this.createTableBuilder.clear();
+        }
+    }
+
     clearAll() {
         // Clear all query builders
         this.clearSelect();
@@ -3103,6 +3396,7 @@ class QueryBuilder {
         this.clearUpdate();
         this.clearDelete();
         this.clearAlter();
+        this.clearCreate();
 
         if (this.userManager) {
             this.userManager.clear();

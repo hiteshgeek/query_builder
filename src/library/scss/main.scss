@@ -58,6 +58,158 @@ body {
   gap: $spacing-sm;
 }
 
+// Database Selector
+.database-selector {
+  position: relative;
+  margin: 0 $spacing-md;
+}
+
+.database-selector-btn {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 160px;
+
+  svg:first-child {
+    color: $color-primary;
+    flex-shrink: 0;
+  }
+
+  .database-name {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .dropdown-arrow {
+    color: $text-muted;
+    flex-shrink: 0;
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    background: $bg-secondary;
+    border-color: $color-primary;
+  }
+
+  &.active {
+    background: $bg-secondary;
+    border-color: $color-primary;
+
+    .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.database-dropdown {
+  position: absolute;
+  top: calc(100% + $spacing-xs);
+  left: 0;
+  min-width: 280px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-lg;
+  z-index: 1000;
+  display: none;
+
+  &.show {
+    display: block;
+  }
+}
+
+.database-dropdown-header {
+  display: flex;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  border-bottom: 1px solid $border-color;
+
+  input {
+    flex: 1;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    background: $bg-secondary;
+    color: $text-primary;
+    font-size: $font-size-sm;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+}
+
+.database-list {
+  max-height: 300px;
+  overflow-y: auto;
+
+  .loading {
+    padding: $spacing-md;
+    text-align: center;
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+}
+
+.database-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-secondary;
+  }
+
+  &.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: $color-primary;
+
+    .database-item-icon {
+      color: $color-primary;
+    }
+  }
+
+  .database-item-icon {
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+
+  .database-item-name {
+    flex: 1;
+    font-size: $font-size-sm;
+  }
+
+  .database-item-check {
+    color: $color-success;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  &.active .database-item-check {
+    opacity: 1;
+  }
+}
+
 // Theme Toggle
 .theme-toggle {
   @include flex-center;
@@ -3560,6 +3712,433 @@ textarea.insert-input {
       font-size: $font-size-xs;
       white-space: pre-wrap;
       word-break: break-all;
+    }
+  }
+}
+
+// ===========================================
+// Create Database Modal
+// ===========================================
+
+.modal-create-database {
+  max-width: 480px;
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .form-hint {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+
+  .sql-preview-mini {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: $spacing-sm;
+    margin: 0;
+    max-height: 100px;
+    overflow: auto;
+    @include custom-scrollbar;
+
+    code {
+      font-family: $font-mono;
+      font-size: $font-size-xs;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+}
+
+// ===========================================
+// Create Table Panel Styles
+// ===========================================
+
+.create-panel {
+  .create-panel-content {
+    padding: $spacing-md;
+    overflow-y: auto;
+    @include custom-scrollbar;
+  }
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .form-group-lg {
+      flex: 2;
+    }
+
+    .form-group-sm {
+      flex: 0 0 auto;
+    }
+  }
+
+  .form-row-3 {
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+
+  .form-row-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .checkbox-label {
+      @include flex-start;
+      gap: $spacing-xs;
+      cursor: pointer;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .columns-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .column-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $color-primary;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: $text-muted;
+      padding: $spacing-xs;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    .column-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      min-width: 0;
+    }
+
+    .column-name {
+      font-weight: 500;
+      color: $text-primary;
+    }
+
+    .column-type {
+      color: $text-muted;
+      font-size: $font-size-sm;
+      font-family: $font-mono;
+    }
+
+    .column-constraints {
+      color: $color-primary;
+      font-size: $font-size-xs;
+      font-weight: 500;
+    }
+
+    .column-actions {
+      display: flex;
+      gap: $spacing-xs;
+    }
+  }
+
+  .btn-icon-sm {
+    @include button-reset;
+    @include flex-center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    color: $text-muted;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-tertiary;
+      color: $text-primary;
+    }
+  }
+
+  .btn-danger-icon:hover {
+    background: rgba($color-danger, 0.1);
+    color: $color-danger;
+  }
+}
+
+// Column Form Overlay
+.column-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.column-form {
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-form-header {
+  @include flex-between;
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  h4 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 600;
+  }
+}
+
+.column-form-body {
+  padding: $spacing-md;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+  }
+
+  .form-row-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .checkbox-label {
+      @include flex-start;
+      gap: $spacing-xs;
+      cursor: pointer;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+}
+
+.column-form-footer {
+  @include flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+}
+
+// Templates dropdown
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-lg;
+  z-index: 100;
+  overflow: hidden;
+
+  .dropdown-item {
+    @include button-reset;
+    display: block;
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: $bg-secondary;
     }
   }
 }

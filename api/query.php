@@ -28,6 +28,7 @@ if (!$input || !isset($input['sql'])) {
 
 $sql = trim($input['sql']);
 $params = $input['params'] ?? [];
+$database = $input['database'] ?? null;
 
 // Basic SQL injection prevention - only allow SELECT statements
 $sqlUpper = strtoupper(ltrim($sql));
@@ -45,6 +46,11 @@ foreach ($dangerous as $keyword) {
 
 try {
     $db = Database::getInstance();
+
+    // Switch to specified database if provided
+    if ($database) {
+        $db->switchDatabase($database);
+    }
 
     // Check if EXPLAIN mode
     $isExplain = isset($_GET['explain']);
