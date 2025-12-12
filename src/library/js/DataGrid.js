@@ -69,6 +69,9 @@ class DataGrid {
             </th>
         `;
 
+        // Actions column header (after checkbox)
+        html += '<th class="grid-col-actions"></th>';
+
         // Data columns
         this.columns.forEach(col => {
             const isPrimary = this.primaryKey.includes(col.name);
@@ -87,9 +90,6 @@ class DataGrid {
                 </th>
             `;
         });
-
-        // Sticky actions column header
-        html += '<th class="grid-col-actions"></th>';
 
         html += '</tr>';
         return html;
@@ -122,21 +122,7 @@ class DataGrid {
             </td>
         `;
 
-        // Data cells
-        this.columns.forEach(col => {
-            const value = row[col.name];
-            const cellContent = this.formatCellValue(value, col);
-            const isPrimary = this.primaryKey.includes(col.name);
-
-            html += `
-                <td class="grid-cell ${isPrimary ? 'pk-cell' : ''} ${value === null ? 'null-value' : ''}"
-                    data-column="${col.name}">
-                    ${cellContent}
-                </td>
-            `;
-        });
-
-        // Actions cell - always visible
+        // Actions cell (after checkbox)
         html += `
             <td class="grid-cell-actions">
                 <div class="row-actions">
@@ -167,6 +153,20 @@ class DataGrid {
                 </div>
             </td>
         `;
+
+        // Data cells
+        this.columns.forEach(col => {
+            const value = row[col.name];
+            const cellContent = this.formatCellValue(value, col);
+            const isPrimary = this.primaryKey.includes(col.name);
+
+            html += `
+                <td class="grid-cell ${isPrimary ? 'pk-cell' : ''} ${value === null ? 'null-value' : ''}"
+                    data-column="${col.name}">
+                    ${cellContent}
+                </td>
+            `;
+        });
 
         html += '</tr>';
         return html;
