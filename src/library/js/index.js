@@ -819,6 +819,11 @@ class QueryBuilder {
                     ${table.columns.map(col => `
                         <div class="column-item ${col.key_type === 'PRI' ? 'primary-key' : ''} ${col.foreign_key ? 'foreign-key' : ''}"
                              data-table="${table.name}" data-column="${col.name}">
+                            <span class="key-icon-container">${col.key_type === 'PRI' ? `<svg class="key-icon primary-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                            </svg>` : ''}${col.foreign_key ? `<svg class="key-icon foreign-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                            </svg>` : ''}</span>
                             <span class="column-name">${col.name}</span>
                             <span class="column-type">${col.data_type}</span>
                         </div>
@@ -903,6 +908,7 @@ class QueryBuilder {
         this.renderSelectedTables();
         this.renderColumns();
         this.renderGroupBy();
+        this.renderOrderBy();
         this.updateJoinSuggestions();
         this.updateSQLPreview();
     }
@@ -978,6 +984,7 @@ class QueryBuilder {
         this.renderJoins();
         this.renderConditions();
         this.renderGroupBy();
+        this.renderOrderBy();
         this.updateSQLPreview();
     }
 
@@ -1007,6 +1014,7 @@ class QueryBuilder {
         this.renderJoins();
         this.renderConditions();
         this.renderGroupBy();
+        this.renderOrderBy();
         this.updateJoinSuggestions();
         this.updateSQLPreview();
     }
@@ -1033,6 +1041,7 @@ class QueryBuilder {
 
         this.renderColumns();
         this.renderGroupBy();
+        this.renderOrderBy();
         this.updateSQLPreview();
     }
 
@@ -1560,6 +1569,8 @@ class QueryBuilder {
             this.selectedColumns[tableKey] = [...allCols];
         });
         this.renderColumns();
+        this.renderGroupBy();
+        this.renderOrderBy();
         this.updateSQLPreview();
     }
 
@@ -1569,6 +1580,8 @@ class QueryBuilder {
             this.selectedColumns[tableKey] = [];
         });
         this.renderColumns();
+        this.renderGroupBy();
+        this.renderOrderBy();
         this.updateSQLPreview();
     }
 
@@ -1580,6 +1593,7 @@ class QueryBuilder {
             this.selectedColumns[tableKey].push(columnName);
             this.renderColumns();
             this.renderGroupBy();
+            this.renderOrderBy();
             this.updateSQLPreview();
         }
     }
@@ -1589,6 +1603,7 @@ class QueryBuilder {
             this.selectedColumns[tableKey] = this.selectedColumns[tableKey].filter(c => c !== columnName);
             this.renderColumns();
             this.renderGroupBy();
+            this.renderOrderBy();
             this.updateSQLPreview();
         }
     }

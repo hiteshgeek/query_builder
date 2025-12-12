@@ -369,7 +369,8 @@ body {
 }
 
 .column-item {
-  @include flex-between;
+  display: flex;
+  align-items: center;
   padding: $spacing-xs $spacing-sm;
   margin-left: $spacing-md;
   font-size: $font-size-xs;
@@ -381,12 +382,28 @@ body {
     background: $gray-100;
   }
 
-  &.primary-key .column-name::before {
-    content: "= ";
+  .key-icon-container {
+    width: 16px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  &.foreign-key .column-name::before {
-    content: "= ";
+  .key-icon {
+    transform: rotate(135deg);
+
+    &.primary-key-icon {
+      stroke: #f59e0b; // Yellow/amber color for primary key
+    }
+
+    &.foreign-key-icon {
+      stroke: #8b5cf6; // Purple color for foreign key
+    }
+  }
+
+  .column-type {
+    margin-left: auto; // Push type to the right
   }
 }
 
