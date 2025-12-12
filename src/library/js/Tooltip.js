@@ -23,6 +23,7 @@ class Tooltip {
         this.showTimeout = null;
         this.hideTimeout = null;
         this.delay = 300; // Delay before showing tooltip
+        this.suppressUntil = 0; // Timestamp until which tooltips are suppressed
         this.init();
     }
 
@@ -85,6 +86,25 @@ class Tooltip {
         document.addEventListener('scroll', () => {
             this.hide();
         }, true);
+
+        // Hide tooltip when switching browser tabs
+        document.addEventListener('visibilitychange', () => {
+            this.hide();
+        });
+
+        // Hide tooltip on click (e.g., when clicking tabs, buttons, etc.)
+        document.addEventListener('click', () => {
+            this.hide();
+            // Suppress tooltips for a short period after clicking to prevent flickering
+            this.suppressUntil = Date.now() + 500;
+        }, true);
+
+        // Hide tooltip on keydown (e.g., Escape key or tab navigation)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'Tab') {
+                this.hide();
+            }
+        });
     }
 
     /**
@@ -94,6 +114,11 @@ class Tooltip {
         clearTimeout(this.hideTimeout);
 
         this.showTimeout = setTimeout(() => {
+            // Don't show if suppressed (e.g., after a click)
+            if (Date.now() < this.suppressUntil) {
+                return;
+            }
+
             const text = target.getAttribute('data-tooltip');
             const position = target.getAttribute('data-tooltip-position') || 'top';
             if (text) {

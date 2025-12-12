@@ -570,10 +570,28 @@ class QueryBuilder {
     }
 
     renderDropZoneTable(dropZone, tableName) {
+        const builderId = dropZone.id.replace('-table-drop', '');
+
+        // Use the same color system as SELECT panel
+        if (!this.dropZoneColors) {
+            this.dropZoneColors = {};
+        }
+        if (this.dropZoneColors[builderId] === undefined) {
+            this.dropZoneColors[builderId] = this.nextColorIndex;
+            this.nextColorIndex = (this.nextColorIndex + 1) % this.tableColors.length;
+        }
+        const color = this.tableColors[this.dropZoneColors[builderId]];
+
+        // Use exact same structure as SELECT panel's selected-table
         dropZone.innerHTML = `
-            <div class="drop-zone-table">
-                <span class="table-name">${tableName}</span>
-                <button class="remove-btn">&times;</button>
+            <div class="selected-table"
+                 style="background: ${color.bg}; border-color: ${color.border}; color: ${color.text}">
+                <span class="table-display-name">${tableName}</span>
+                <button class="remove-btn" data-tooltip="Remove table">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
         `;
         dropZone.classList.add('has-table');
@@ -581,9 +599,9 @@ class QueryBuilder {
         dropZone.querySelector('.remove-btn').addEventListener('click', () => {
             dropZone.innerHTML = '<div class="placeholder">Drag a table here or double-click from sidebar</div>';
             dropZone.classList.remove('has-table');
+            delete this.dropZoneColors[builderId];
 
             // Clear the builder's table
-            const builderId = dropZone.id.replace('-table-drop', '');
             if (builderId === 'insert' && this.insertBuilder) {
                 this.insertBuilder.clear();
             } else if (builderId === 'update' && this.updateBuilder) {
@@ -629,6 +647,25 @@ class QueryBuilder {
                 ${labels[type] || 'Run Query'}
             `;
         }
+
+        // Update SQL preview for the current query type
+        this.refreshCurrentSQLPreview();
+    }
+
+    /**
+     * Refresh the SQL preview in bottom panel based on current query type
+     */
+    refreshCurrentSQLPreview() {
+        let sql = this.getCurrentSQL();
+
+        // Show helpful message for users tab
+        if (this.currentQueryType === 'users') {
+            sql = '-- User management queries will appear here when executed';
+        } else if (!sql || sql.startsWith('-- ')) {
+            // Keep placeholder messages from builders
+        }
+
+        this.updateBottomPanelSQL(sql || '-- Select a table to build query');
     }
 
     switchTab(e) {
@@ -667,9 +704,47 @@ class QueryBuilder {
         }
     }
 
+    /**
+     * Get current SQL based on the active query type
+     */
+    getCurrentSQL() {
+        switch (this.currentQueryType) {
+            case 'select':
+                return this.buildSQL();
+            case 'insert':
+                return this.insertBuilder ? this.insertBuilder.getSQL() : '';
+            case 'update':
+                return this.updateBuilder ? this.updateBuilder.getSQL() : '';
+            case 'delete':
+                return this.deleteBuilder ? this.deleteBuilder.getSQL() : '';
+            case 'alter':
+                return this.alterBuilder ? this.alterBuilder.getSQL() : '';
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Check if current SQL is empty/placeholder
+     */
+    hasValidSQL() {
+        const sql = this.getCurrentSQL();
+        if (!sql) return false;
+
+        // Check for placeholder texts
+        const placeholders = [
+            'SELECT * FROM table_name;',
+            '-- Select a table',
+            '-- No table selected',
+            ''
+        ];
+
+        return !placeholders.some(p => sql.startsWith(p) || sql === p);
+    }
+
     copySQL() {
-        const sql = this.buildSQL();
-        if (!sql || sql === 'SELECT * FROM table_name;') {
+        const sql = this.getCurrentSQL();
+        if (!this.hasValidSQL()) {
             toast.warning('No query to copy');
             return;
         }
@@ -860,6 +935,22 @@ class QueryBuilder {
         if (!tableEntry) return;
 
         const oldKey = this.getTableKey(tableEntry);
+
+        // Check for duplicate alias
+        if (newAlias) {
+            const isDuplicate = this.selectedTables.some((t, i) => {
+                if (i === index) return false; // Skip self
+                // Check if alias matches another table's alias or name
+                return t.alias === newAlias || (!t.alias && t.name === newAlias);
+            });
+
+            if (isDuplicate) {
+                toast.warning(`Alias "${newAlias}" is already in use`);
+                // Keep input visible so user can correct it - don't re-render
+                return;
+            }
+        }
+
         tableEntry.alias = newAlias || null;
         const newKey = this.getTableKey(tableEntry);
 
@@ -972,7 +1063,11 @@ class QueryBuilder {
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                     </button>
-                    <button class="remove-btn" data-index="${index}">&times;</button>
+                    <button class="remove-btn" data-index="${index}">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
             `;
         }).join('');
@@ -1228,7 +1323,11 @@ class QueryBuilder {
                 <select class="right-column">
                     ${this.getColumnsForTableKey(join.rightTable).map(c => `<option value="${c}" ${join.rightColumn === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
-                <button class="remove-btn">&times;</button>
+                <button class="remove-btn">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
         `).join('');
 
@@ -1313,7 +1412,11 @@ class QueryBuilder {
                 </select>
                 <input type="text" class="value" placeholder="${['BETWEEN', 'NOT BETWEEN'].includes(cond.operator) ? 'min AND max' : 'Value'}" value="${cond.value || ''}"
                        ${['IS NULL', 'IS NOT NULL'].includes(cond.operator) ? 'disabled' : ''}>
-                <button class="remove-btn">&times;</button>
+                <button class="remove-btn">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
         `).join('');
 
@@ -1401,7 +1504,11 @@ class QueryBuilder {
                     <span class="orderby-tag" data-column="${order.column}" style="${style}">
                         ${order.column}
                         <button class="direction-toggle ${dirClass}" data-column="${order.column}" data-tooltip="Toggle direction (${order.direction})">${arrowIcon} ${order.direction}</button>
-                        <button class="tag-remove" data-column="${order.column}">&times;</button>
+                        <button class="tag-remove" data-column="${order.column}">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
                     </span>
                 `;
             }).join('');
@@ -1526,7 +1633,11 @@ class QueryBuilder {
                 return `
                     <span class="column-tag" data-table="${col.tableKey}" data-column="${col.column}" style="${style}">
                         ${col.fullName}
-                        <button class="tag-remove" data-table="${col.tableKey}" data-column="${col.column}">&times;</button>
+                        <button class="tag-remove" data-table="${col.tableKey}" data-column="${col.column}">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
                     </span>
                 `;
             }).join('');
@@ -1597,7 +1708,11 @@ class QueryBuilder {
                 return `
                     <span class="groupby-tag" data-column="${col}" style="${style}">
                         ${col}
-                        <button class="tag-remove" data-column="${col}">&times;</button>
+                        <button class="tag-remove" data-column="${col}">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
                     </span>
                 `;
             }).join('');
@@ -2397,8 +2512,8 @@ class QueryBuilder {
 
     // Export methods
     exportSQL() {
-        const sql = this.buildSQL();
-        if (!sql || sql === 'SELECT * FROM table_name;') {
+        const sql = this.getCurrentSQL();
+        if (!this.hasValidSQL()) {
             toast.warning('No query to export');
             return;
         }

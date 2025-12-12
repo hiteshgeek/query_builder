@@ -140,7 +140,11 @@ class DeleteBuilder {
                 </select>
                 <input type="text" class="value" data-index="${index}" placeholder="Value" value="${cond.value || ''}"
                        ${['IS NULL', 'IS NOT NULL'].includes(cond.operator) ? 'disabled' : ''}>
-                <button class="remove-btn" data-index="${index}">&times;</button>
+                <button class="remove-btn" data-index="${index}">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
         `).join('');
 

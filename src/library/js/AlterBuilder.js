@@ -1109,7 +1109,11 @@ class AlterBuilder {
                     <div class="operation-item ${this.getOperationClass(op.type)}">
                         <span class="operation-type">${this.getOperationLabel(op.type)}</span>
                         <span class="operation-detail">${this.getOperationDetail(op)}</span>
-                        <button class="operation-remove" data-index="${index}">&times;</button>
+                        <button class="operation-remove" data-index="${index}">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
                     </div>
                 `).join('')}
             </div>

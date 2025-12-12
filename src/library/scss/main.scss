@@ -20,6 +20,7 @@ body {
   color: $text-primary;
   background: $bg-secondary;
   line-height: 1.5;
+  overflow: hidden;
 }
 
 // App Layout
@@ -560,16 +561,35 @@ body {
 
   .remove-btn {
     @include button-reset;
-    @include flex-center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: $gray-300;
-    color: white;
-    font-size: 10px;
+    background: rgba(0, 0, 0, 0.12);
+    color: inherit;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
 
     &:hover {
-      background: $color-danger;
+      background: rgba(0, 0, 0, 0.25);
+      opacity: 1;
+    }
+  }
+
+  // Dark theme adjustments
+  [data-theme="dark"] & {
+    .remove-btn {
+      background: rgba(255, 255, 255, 0.15);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
     }
   }
 }
@@ -615,10 +635,17 @@ body {
     height: 24px;
     border-radius: $border-radius;
     color: $text-muted;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
 
     &:hover {
       background: rgba($color-danger, 0.1);
       color: $color-danger;
+      opacity: 1;
     }
   }
 }
@@ -710,12 +737,16 @@ body {
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.12);
     color: inherit;
-    font-size: 10px;
-    line-height: 1;
-    transition: background $transition-fast;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
 
     &:hover {
       background: rgba(0, 0, 0, 0.22);
+      opacity: 1;
     }
   }
 }
@@ -1824,11 +1855,17 @@ textarea.insert-input {
   height: 20px;
   border-radius: 50%;
   color: $text-muted;
-  font-size: 14px;
+  opacity: 0.75;
+  transition: all $transition-fast;
+
+  svg {
+    flex-shrink: 0;
+  }
 
   &:hover {
     background: rgba($color-danger, 0.1);
     color: $color-danger;
+    opacity: 1;
   }
 }
 
@@ -2638,11 +2675,16 @@ textarea.insert-input {
   border-radius: $border-radius;
   background: $bg-secondary;
   transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
 
   .placeholder {
     color: $text-muted;
     font-size: $font-size-sm;
     text-align: center;
+    width: 100%;
   }
 
   &.drag-over {
@@ -2651,34 +2693,10 @@ textarea.insert-input {
   }
 
   &.has-table {
-    border-style: solid;
-    border-color: $color-primary;
-    background: rgba($color-primary, 0.05);
-  }
-}
-
-.drop-zone-table {
-  @include flex-between;
-  padding: $spacing-xs;
-
-  .table-name {
-    font-weight: 500;
-    color: $color-primary;
-  }
-
-  .remove-btn {
-    @include button-reset;
-    @include flex-center;
-    width: 20px;
-    height: 20px;
-    border-radius: 3px;
-    color: $text-muted;
-    font-size: 14px;
-
-    &:hover {
-      background: rgba($color-danger, 0.1);
-      color: $color-danger;
-    }
+    border: none;
+    background: transparent;
+    padding: 0;
+    min-height: auto;
   }
 }
 
@@ -3430,10 +3448,11 @@ textarea.insert-input {
         color: white;
 
         .chip-remove {
-          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.2);
+          color: inherit;
 
           &:hover {
-            color: white;
+            background: rgba(255, 255, 255, 0.35);
           }
         }
       }
@@ -3445,11 +3464,21 @@ textarea.insert-input {
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        color: $text-muted;
-        transition: color 0.15s ease;
+        background: rgba(0, 0, 0, 0.1);
+        color: inherit;
+        opacity: 0.7;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+
+        svg {
+          flex-shrink: 0;
+        }
 
         &:hover {
-          color: $color-danger;
+          background: rgba(0, 0, 0, 0.2);
+          opacity: 1;
         }
       }
     }
@@ -3695,6 +3724,7 @@ textarea.insert-input {
 }
 
 .custom-tooltip-content {
+  position: relative;
   background: $gray-900;
   color: #fff;
   padding: 6px 10px;
@@ -3725,11 +3755,11 @@ textarea.insert-input {
 // Position variations
 .custom-tooltip-top {
   .custom-tooltip-arrow {
-    bottom: -12px;
+    bottom: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(100%);
     border-top-color: $gray-900;
-    border-bottom: none;
+    border-bottom-width: 0;
 
     [data-theme="dark"] & {
       border-top-color: $gray-100;
@@ -3739,11 +3769,11 @@ textarea.insert-input {
 
 .custom-tooltip-bottom {
   .custom-tooltip-arrow {
-    top: -6px;
+    top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(-100%);
     border-bottom-color: $gray-900;
-    border-top: none;
+    border-top-width: 0;
 
     [data-theme="dark"] & {
       border-bottom-color: $gray-100;
@@ -3753,11 +3783,11 @@ textarea.insert-input {
 
 .custom-tooltip-left {
   .custom-tooltip-arrow {
-    right: -12px;
+    right: 0;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) translateX(100%);
     border-left-color: $gray-900;
-    border-right: none;
+    border-right-width: 0;
 
     [data-theme="dark"] & {
       border-left-color: $gray-100;
@@ -3767,11 +3797,11 @@ textarea.insert-input {
 
 .custom-tooltip-right {
   .custom-tooltip-arrow {
-    left: -6px;
+    left: 0;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) translateX(-100%);
     border-right-color: $gray-900;
-    border-left: none;
+    border-left-width: 0;
 
     [data-theme="dark"] & {
       border-right-color: $gray-100;
