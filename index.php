@@ -184,6 +184,15 @@ $basePath = get_base_path();
                 <div class="sidebar-header">
                     <h3>Tables</h3>
                     <div class="sidebar-header-actions">
+                        <button class="btn-icon" id="btn-cross-database" data-tooltip="Show All Databases">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                <line x1="12" y1="12" x2="12" y2="19"/>
+                                <line x1="8" y1="15" x2="16" y2="15"/>
+                            </svg>
+                        </button>
                         <button class="btn-icon" id="btn-refresh-schema" data-tooltip="Refresh Schema">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -725,12 +734,20 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel create-panel" data-panel="create">
                     <div class="panel-header">
                         <h3>CREATE Table</h3>
-                        <button class="btn-sm btn-clear-panel" id="btn-clear-create" data-tooltip="Clear CREATE form">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                            </svg>
-                            Clear
-                        </button>
+                        <div class="panel-header-actions">
+                            <button class="btn-sm" id="btn-clear-create" data-tooltip="Clear CREATE form">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                                Clear
+                            </button>
+                            <button class="btn-sm btn-primary-sm" id="btn-execute-create" data-tooltip="Execute CREATE TABLE">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                Create Table
+                            </button>
+                        </div>
                     </div>
                     <div class="panel-content create-panel-content">
                         <!-- Table Properties Section -->

@@ -131,6 +131,9 @@ class CreateTableBuilder {
         // Clone structure
         document.getElementById('btn-clone-structure')?.addEventListener('click', () => this.cloneTableStructure());
 
+        // Execute CREATE TABLE
+        document.getElementById('btn-execute-create')?.addEventListener('click', () => this.executeCreateTable());
+
         // Collapsible sections
         document.querySelectorAll('.create-panel .collapsible-header').forEach(header => {
             header.addEventListener('click', (e) => {
@@ -391,9 +394,9 @@ class CreateTableBuilder {
         }
 
         container.innerHTML = `
-            <div class="columns-list">
+            <div class="columns-list" id="columns-list-sortable">
                 ${this.columns.map((col, index) => `
-                    <div class="column-row" data-index="${index}">
+                    <div class="column-row" data-index="${index}" draggable="true">
                         <div class="drag-handle" data-tooltip="Drag to reorder">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
@@ -430,6 +433,63 @@ class CreateTableBuilder {
 
         container.querySelectorAll('[data-action="delete"]').forEach(btn => {
             btn.addEventListener('click', () => this.removeColumn(parseInt(btn.dataset.index)));
+        });
+
+        // Bind drag-and-drop events
+        this.initDragAndDrop();
+    }
+
+    initDragAndDrop() {
+        const list = document.getElementById('columns-list-sortable');
+        if (!list) return;
+
+        let draggedItem = null;
+        let draggedIndex = null;
+
+        list.querySelectorAll('.column-row').forEach(row => {
+            row.addEventListener('dragstart', (e) => {
+                draggedItem = row;
+                draggedIndex = parseInt(row.dataset.index);
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                list.querySelectorAll('.column-row').forEach(r => r.classList.remove('drag-over'));
+                draggedItem = null;
+                draggedIndex = null;
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (row !== draggedItem) {
+                    row.classList.add('drag-over');
+                }
+            });
+
+            row.addEventListener('dragleave', () => {
+                row.classList.remove('drag-over');
+            });
+
+            row.addEventListener('drop', (e) => {
+                e.preventDefault();
+                row.classList.remove('drag-over');
+
+                if (row === draggedItem) return;
+
+                const targetIndex = parseInt(row.dataset.index);
+
+                // Reorder the columns array
+                const [movedColumn] = this.columns.splice(draggedIndex, 1);
+                this.columns.splice(targetIndex, 0, movedColumn);
+
+                // Re-render and update SQL
+                this.renderColumns();
+                this.updateSQL();
+            });
         });
     }
 
@@ -516,13 +576,377 @@ class CreateTableBuilder {
     }
 
     showAddIndexForm(editIndex = null) {
-        // Implementation for adding indexes
-        toast.info('Index form coming soon');
+        const isEdit = editIndex !== null;
+        const index = isEdit ? this.indexes[editIndex] : null;
+
+        // Get available columns for the index
+        const availableColumns = this.columns.map(c => c.name);
+
+        if (availableColumns.length === 0) {
+            toast.warning('Add columns first before creating indexes');
+            return;
+        }
+
+        const formHTML = `
+            <div class="column-form-overlay" id="index-form-overlay">
+                <div class="column-form">
+                    <div class="column-form-header">
+                        <h4>${isEdit ? 'Edit Index' : 'Add Index'}</h4>
+                        <button class="btn-icon" id="btn-close-index-form">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="column-form-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Index Name <span class="required">*</span></label>
+                                <input type="text" id="idx-name" value="${index?.name || ''}" placeholder="e.g., idx_user_email">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Index Type</label>
+                                <select id="idx-type">
+                                    <option value="INDEX" ${index?.type === 'INDEX' ? 'selected' : ''}>INDEX (Regular)</option>
+                                    <option value="UNIQUE" ${index?.type === 'UNIQUE' ? 'selected' : ''}>UNIQUE</option>
+                                    <option value="FULLTEXT" ${index?.type === 'FULLTEXT' ? 'selected' : ''}>FULLTEXT</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Columns <span class="required">*</span></label>
+                            <div class="checkbox-list" id="idx-columns">
+                                ${availableColumns.map(col => `
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="${col}" ${index?.columns?.includes(col) ? 'checked' : ''}>
+                                        <span>${col}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column-form-footer">
+                        <button class="btn btn-secondary" id="btn-cancel-index">Cancel</button>
+                        <button class="btn btn-primary" id="btn-save-index" data-index="${editIndex ?? ''}">
+                            ${isEdit ? 'Update Index' : 'Add Index'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('index-form-overlay')?.remove();
+        document.body.insertAdjacentHTML('beforeend', formHTML);
+
+        document.getElementById('btn-close-index-form')?.addEventListener('click', () => this.closeIndexForm());
+        document.getElementById('btn-cancel-index')?.addEventListener('click', () => this.closeIndexForm());
+        document.getElementById('btn-save-index')?.addEventListener('click', () => this.saveIndex(editIndex));
+        document.getElementById('idx-name')?.focus();
+    }
+
+    closeIndexForm() {
+        document.getElementById('index-form-overlay')?.remove();
+    }
+
+    saveIndex(editIndex) {
+        const name = document.getElementById('idx-name')?.value?.trim();
+        const type = document.getElementById('idx-type')?.value;
+        const columnCheckboxes = document.querySelectorAll('#idx-columns input[type="checkbox"]:checked');
+        const columns = Array.from(columnCheckboxes).map(cb => cb.value);
+
+        if (!name) {
+            toast.warning('Index name is required');
+            return;
+        }
+
+        if (columns.length === 0) {
+            toast.warning('Select at least one column for the index');
+            return;
+        }
+
+        const indexData = { name, type, columns };
+
+        if (editIndex !== null && editIndex !== '') {
+            this.indexes[parseInt(editIndex)] = indexData;
+        } else {
+            this.indexes.push(indexData);
+        }
+
+        this.closeIndexForm();
+        this.renderIndexes();
+        this.updateSQL();
+    }
+
+    renderIndexes() {
+        const container = document.getElementById('create-indexes-container');
+        if (!container) return;
+
+        if (this.indexes.length === 0) {
+            container.innerHTML = '<div class="placeholder">No additional indexes. Primary key is defined automatically from columns.</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="columns-list">
+                ${this.indexes.map((idx, index) => `
+                    <div class="column-row" data-index="${index}">
+                        <div class="column-info">
+                            <span class="column-name">${idx.name}</span>
+                            <span class="column-type">${idx.type}</span>
+                            <span class="column-constraints">(${idx.columns.join(', ')})</span>
+                        </div>
+                        <div class="column-actions">
+                            <button class="btn-icon-sm" data-action="edit-index" data-index="${index}" data-tooltip="Edit">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon-sm btn-danger-icon" data-action="delete-index" data-index="${index}" data-tooltip="Delete">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        container.querySelectorAll('[data-action="edit-index"]').forEach(btn => {
+            btn.addEventListener('click', () => this.showAddIndexForm(parseInt(btn.dataset.index)));
+        });
+
+        container.querySelectorAll('[data-action="delete-index"]').forEach(btn => {
+            btn.addEventListener('click', () => this.removeIndex(parseInt(btn.dataset.index)));
+        });
+    }
+
+    removeIndex(index) {
+        this.indexes.splice(index, 1);
+        this.renderIndexes();
+        this.updateSQL();
     }
 
     showAddForeignKeyForm(editIndex = null) {
-        // Implementation for adding foreign keys
-        toast.info('Foreign key form coming soon');
+        const isEdit = editIndex !== null;
+        const fk = isEdit ? this.foreignKeys[editIndex] : null;
+
+        const availableColumns = this.columns.map(c => c.name);
+
+        if (availableColumns.length === 0) {
+            toast.warning('Add columns first before creating foreign keys');
+            return;
+        }
+
+        // Get reference tables from schema
+        const refTables = this.schema?.tables || [];
+
+        const formHTML = `
+            <div class="column-form-overlay" id="fk-form-overlay">
+                <div class="column-form">
+                    <div class="column-form-header">
+                        <h4>${isEdit ? 'Edit Foreign Key' : 'Add Foreign Key'}</h4>
+                        <button class="btn-icon" id="btn-close-fk-form">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="column-form-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Constraint Name <span class="required">*</span></label>
+                                <input type="text" id="fk-name" value="${fk?.name || ''}" placeholder="e.g., fk_posts_user_id">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Column <span class="required">*</span></label>
+                                <select id="fk-column">
+                                    <option value="">Select column...</option>
+                                    ${availableColumns.map(col => `
+                                        <option value="${col}" ${fk?.column === col ? 'selected' : ''}>${col}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Reference Table <span class="required">*</span></label>
+                                <select id="fk-ref-table">
+                                    <option value="">Select table...</option>
+                                    ${refTables.map(t => `
+                                        <option value="${t.name}" ${fk?.refTable === t.name ? 'selected' : ''}>${t.name}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Reference Column <span class="required">*</span></label>
+                                <select id="fk-ref-column">
+                                    <option value="">Select column...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>ON DELETE</label>
+                                <select id="fk-on-delete">
+                                    <option value="" ${!fk?.onDelete ? 'selected' : ''}>No Action</option>
+                                    <option value="CASCADE" ${fk?.onDelete === 'CASCADE' ? 'selected' : ''}>CASCADE</option>
+                                    <option value="SET NULL" ${fk?.onDelete === 'SET NULL' ? 'selected' : ''}>SET NULL</option>
+                                    <option value="RESTRICT" ${fk?.onDelete === 'RESTRICT' ? 'selected' : ''}>RESTRICT</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>ON UPDATE</label>
+                                <select id="fk-on-update">
+                                    <option value="" ${!fk?.onUpdate ? 'selected' : ''}>No Action</option>
+                                    <option value="CASCADE" ${fk?.onUpdate === 'CASCADE' ? 'selected' : ''}>CASCADE</option>
+                                    <option value="SET NULL" ${fk?.onUpdate === 'SET NULL' ? 'selected' : ''}>SET NULL</option>
+                                    <option value="RESTRICT" ${fk?.onUpdate === 'RESTRICT' ? 'selected' : ''}>RESTRICT</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column-form-footer">
+                        <button class="btn btn-secondary" id="btn-cancel-fk">Cancel</button>
+                        <button class="btn btn-primary" id="btn-save-fk" data-index="${editIndex ?? ''}">
+                            ${isEdit ? 'Update Foreign Key' : 'Add Foreign Key'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('fk-form-overlay')?.remove();
+        document.body.insertAdjacentHTML('beforeend', formHTML);
+
+        // Bind events
+        document.getElementById('btn-close-fk-form')?.addEventListener('click', () => this.closeForeignKeyForm());
+        document.getElementById('btn-cancel-fk')?.addEventListener('click', () => this.closeForeignKeyForm());
+        document.getElementById('btn-save-fk')?.addEventListener('click', () => this.saveForeignKey(editIndex));
+
+        // Load reference columns when table is selected
+        document.getElementById('fk-ref-table')?.addEventListener('change', (e) => {
+            this.loadReferenceColumns(e.target.value, fk?.refColumn);
+        });
+
+        // If editing, load reference columns
+        if (fk?.refTable) {
+            this.loadReferenceColumns(fk.refTable, fk.refColumn);
+        }
+
+        document.getElementById('fk-name')?.focus();
+    }
+
+    loadReferenceColumns(tableName, selectedColumn = null) {
+        const select = document.getElementById('fk-ref-column');
+        if (!select) return;
+
+        const table = this.schema?.tables?.find(t => t.name === tableName);
+        if (!table) {
+            select.innerHTML = '<option value="">Select column...</option>';
+            return;
+        }
+
+        select.innerHTML = `
+            <option value="">Select column...</option>
+            ${table.columns.map(col => `
+                <option value="${col.name}" ${selectedColumn === col.name ? 'selected' : ''}>${col.name}</option>
+            `).join('')}
+        `;
+    }
+
+    closeForeignKeyForm() {
+        document.getElementById('fk-form-overlay')?.remove();
+    }
+
+    saveForeignKey(editIndex) {
+        const name = document.getElementById('fk-name')?.value?.trim();
+        const column = document.getElementById('fk-column')?.value;
+        const refTable = document.getElementById('fk-ref-table')?.value;
+        const refColumn = document.getElementById('fk-ref-column')?.value;
+        const onDelete = document.getElementById('fk-on-delete')?.value;
+        const onUpdate = document.getElementById('fk-on-update')?.value;
+
+        if (!name) {
+            toast.warning('Constraint name is required');
+            return;
+        }
+        if (!column) {
+            toast.warning('Select a column');
+            return;
+        }
+        if (!refTable || !refColumn) {
+            toast.warning('Select reference table and column');
+            return;
+        }
+
+        const fkData = { name, column, refTable, refColumn, onDelete, onUpdate };
+
+        if (editIndex !== null && editIndex !== '') {
+            this.foreignKeys[parseInt(editIndex)] = fkData;
+        } else {
+            this.foreignKeys.push(fkData);
+        }
+
+        this.closeForeignKeyForm();
+        this.renderForeignKeys();
+        this.updateSQL();
+    }
+
+    renderForeignKeys() {
+        const container = document.getElementById('create-fk-container');
+        if (!container) return;
+
+        if (this.foreignKeys.length === 0) {
+            container.innerHTML = '<div class="placeholder">No foreign keys defined.</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="columns-list">
+                ${this.foreignKeys.map((fk, index) => `
+                    <div class="column-row" data-index="${index}">
+                        <div class="column-info">
+                            <span class="column-name">${fk.name}</span>
+                            <span class="column-type">${fk.column} → ${fk.refTable}.${fk.refColumn}</span>
+                            <span class="column-constraints">${[fk.onDelete ? `DEL:${fk.onDelete}` : '', fk.onUpdate ? `UPD:${fk.onUpdate}` : ''].filter(Boolean).join(' ')}</span>
+                        </div>
+                        <div class="column-actions">
+                            <button class="btn-icon-sm" data-action="edit-fk" data-index="${index}" data-tooltip="Edit">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon-sm btn-danger-icon" data-action="delete-fk" data-index="${index}" data-tooltip="Delete">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        container.querySelectorAll('[data-action="edit-fk"]').forEach(btn => {
+            btn.addEventListener('click', () => this.showAddForeignKeyForm(parseInt(btn.dataset.index)));
+        });
+
+        container.querySelectorAll('[data-action="delete-fk"]').forEach(btn => {
+            btn.addEventListener('click', () => this.removeForeignKey(parseInt(btn.dataset.index)));
+        });
+    }
+
+    removeForeignKey(index) {
+        this.foreignKeys.splice(index, 1);
+        this.renderForeignKeys();
+        this.updateSQL();
     }
 
     async cloneTableStructure() {
@@ -687,6 +1111,45 @@ class CreateTableBuilder {
             indexes: this.indexes,
             foreignKeys: this.foreignKeys
         };
+    }
+
+    async executeCreateTable() {
+        if (!this.tableName) {
+            toast.warning('Please enter a table name');
+            return;
+        }
+
+        if (this.columns.length === 0) {
+            toast.warning('Please add at least one column');
+            return;
+        }
+
+        const sql = this.buildSQL();
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/query.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sql })
+            });
+
+            const data = await response.json();
+
+            if (!data.error) {
+                toast.success(`Table "${this.tableName}" created successfully`);
+
+                // Clear the form
+                this.clear();
+
+                // Trigger schema reload (dispatch custom event)
+                window.dispatchEvent(new CustomEvent('schema-refresh-needed'));
+            } else {
+                toast.error(data.message || 'Failed to create table');
+            }
+        } catch (error) {
+            console.error('Error creating table:', error);
+            toast.error('Failed to create table');
+        }
     }
 }
 

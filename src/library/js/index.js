@@ -74,6 +74,9 @@ class QueryBuilder {
         // Database selection state
         this.databases = [];
         this.currentDatabase = localStorage.getItem('qb-current-database') || null;
+        this.configuredDatabase = null; // The database configured in .env (cannot be deleted)
+        this.crossDatabaseMode = localStorage.getItem('qb-cross-database-mode') === 'true';
+        this.allDatabasesSchema = {}; // Cache for schemas from other databases
 
         this.init();
     }
@@ -85,6 +88,21 @@ class QueryBuilder {
         await this.loadDatabases();
         await this.loadSchema();
         this.initSubBuilders();
+        this.restoreCrossDatabaseMode();
+    }
+
+    async restoreCrossDatabaseMode() {
+        if (this.crossDatabaseMode) {
+            // Update button state
+            const btn = document.getElementById('btn-cross-database');
+            if (btn) {
+                btn.classList.add('active');
+                btn.setAttribute('data-tooltip', 'Show Current Database Only');
+            }
+            // Load all databases schemas
+            await this.loadAllDatabasesSchema();
+            this.renderTablesList();
+        }
     }
 
     restorePanelStates() {
@@ -208,9 +226,15 @@ class QueryBuilder {
         // Refresh schema
         document.getElementById('btn-refresh-schema')?.addEventListener('click', () => this.loadSchema());
 
+        // Listen for schema refresh events (from CreateTableBuilder, etc.)
+        window.addEventListener('schema-refresh-needed', () => this.loadSchema());
+
         // Sidebar collapse/expand
         document.getElementById('btn-collapse-sidebar')?.addEventListener('click', () => this.toggleSidebar(false));
         document.getElementById('btn-expand-sidebar')?.addEventListener('click', () => this.toggleSidebar(true));
+
+        // Cross-database mode toggle
+        document.getElementById('btn-cross-database')?.addEventListener('click', () => this.toggleCrossDatabaseMode());
 
         // Bottom panel collapse/expand
         document.getElementById('btn-collapse-bottom')?.addEventListener('click', () => this.toggleBottomPanel(false));
@@ -449,6 +473,7 @@ class QueryBuilder {
                 // Extract database names from the response objects
                 this.databases = data.data.databases.map(db => typeof db === 'object' ? db.name : db);
                 const serverCurrent = data.data.current;
+                this.configuredDatabase = data.data.configured || serverCurrent;
 
                 // If no current database is set, use the one from the server
                 if (!this.currentDatabase && serverCurrent) {
@@ -487,24 +512,46 @@ class QueryBuilder {
             return;
         }
 
-        listEl.innerHTML = filteredDbs.map(db => `
-            <div class="database-item ${db === this.currentDatabase ? 'active' : ''}" data-database="${db}">
-                <svg class="database-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                </svg>
-                <span class="database-item-name">${db}</span>
-                <svg class="database-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"/>
-                </svg>
-            </div>
-        `).join('');
+        listEl.innerHTML = filteredDbs.map(db => {
+            const isActive = db === this.currentDatabase;
+            const canDelete = db !== this.configuredDatabase && db !== this.currentDatabase;
+            return `
+                <div class="database-item ${isActive ? 'active' : ''}" data-database="${db}">
+                    <svg class="database-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    </svg>
+                    <span class="database-item-name">${db}</span>
+                    ${canDelete ? `
+                        <button class="database-item-delete" data-delete="${db}" data-tooltip="Delete Database">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                    <svg class="database-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+            `;
+        }).join('');
 
-        // Bind click events
+        // Bind click events for selecting database
         listEl.querySelectorAll('.database-item').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                // Don't switch if clicking on delete button
+                if (e.target.closest('.database-item-delete')) return;
                 this.switchDatabase(item.dataset.database);
+            });
+        });
+
+        // Bind click events for delete buttons
+        listEl.querySelectorAll('.database-item-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.confirmDeleteDatabase(btn.dataset.delete);
             });
         });
     }
@@ -627,6 +674,42 @@ class QueryBuilder {
         } catch (error) {
             console.error('Error creating database:', error);
             toast.error('Failed to create database');
+        }
+    }
+
+    confirmDeleteDatabase(dbName) {
+        this.closeDatabaseDropdown();
+
+        this.typeToConfirm.show({
+            title: 'Drop Database',
+            message: `This will permanently delete the database "${dbName}" and ALL its data. This action cannot be undone.`,
+            confirmText: dbName,
+            confirmButtonText: 'Drop Database',
+            variant: 'danger',
+            onConfirm: async () => {
+                await this.deleteDatabase(dbName);
+            }
+        });
+    }
+
+    async deleteDatabase(dbName) {
+        try {
+            const response = await fetch(
+                `${window.APP_CONFIG.apiBase}/databases.php?name=${encodeURIComponent(dbName)}&confirm=${encodeURIComponent(dbName)}`,
+                { method: 'DELETE' }
+            );
+
+            const data = await response.json();
+
+            if (!data.error) {
+                toast.success(`Database "${dbName}" dropped successfully`);
+                await this.loadDatabases();
+            } else {
+                toast.error(data.message || 'Failed to drop database');
+            }
+        } catch (error) {
+            console.error('Error dropping database:', error);
+            toast.error('Failed to drop database');
         }
     }
 
@@ -1102,6 +1185,54 @@ class QueryBuilder {
         }
     }
 
+    async toggleCrossDatabaseMode() {
+        this.crossDatabaseMode = !this.crossDatabaseMode;
+        localStorage.setItem('qb-cross-database-mode', this.crossDatabaseMode);
+
+        // Update button state
+        const btn = document.getElementById('btn-cross-database');
+        if (btn) {
+            btn.classList.toggle('active', this.crossDatabaseMode);
+            btn.setAttribute('data-tooltip', this.crossDatabaseMode ? 'Show Current Database Only' : 'Show All Databases');
+        }
+
+        if (this.crossDatabaseMode) {
+            toast.info('Cross-database mode enabled');
+            await this.loadAllDatabasesSchema();
+        } else {
+            toast.info('Showing current database only');
+            this.allDatabasesSchema = {};
+        }
+
+        this.renderTablesList();
+    }
+
+    async loadAllDatabasesSchema() {
+        const tablesList = document.getElementById('tables-list');
+        tablesList.innerHTML = '<div class="loading">Loading all databases...</div>';
+
+        this.allDatabasesSchema = {};
+
+        // Load schemas for all databases except current (which is already loaded)
+        const otherDatabases = this.databases.filter(db => db !== this.currentDatabase);
+
+        try {
+            await Promise.all(otherDatabases.map(async (dbName) => {
+                try {
+                    const response = await fetch(`${window.APP_CONFIG.apiBase}/schema.php?database=${encodeURIComponent(dbName)}`);
+                    const result = await response.json();
+                    if (!result.error && result.data) {
+                        this.allDatabasesSchema[dbName] = result.data;
+                    }
+                } catch (err) {
+                    console.warn(`Failed to load schema for ${dbName}:`, err);
+                }
+            }));
+        } catch (error) {
+            console.error('Error loading cross-database schemas:', error);
+        }
+    }
+
     renderTablesList() {
         const tablesList = document.getElementById('tables-list');
 
@@ -1110,39 +1241,108 @@ class QueryBuilder {
             return;
         }
 
-        tablesList.innerHTML = this.schema.tables.map(table => `
-            <div class="table-item" data-table="${table.name}">
-                <div class="table-header" draggable="true">
-                    <div class="table-name">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/>
-                            <line x1="9" y1="21" x2="9" y2="9"/>
-                        </svg>
-                        ${table.name}
-                    </div>
-                    <button class="table-toggle">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="table-columns">
-                    ${table.columns.map(col => `
-                        <div class="column-item ${col.key_type === 'PRI' ? 'primary-key' : ''} ${col.foreign_key ? 'foreign-key' : ''}"
-                             data-table="${table.name}" data-column="${col.name}">
-                            <span class="key-icon-container">${col.key_type === 'PRI' ? `<svg class="key-icon primary-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-                            </svg>` : ''}${col.foreign_key ? `<svg class="key-icon foreign-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-                            </svg>` : ''}</span>
-                            <span class="column-name">${col.name}</span>
-                            <span class="column-type">${col.data_type}</span>
+        // Helper function to render a table item
+        const renderTableItem = (table, database = null) => {
+            const fullTableName = database ? `${database}.${table.name}` : table.name;
+            const displayName = database ? `${table.name}` : table.name;
+            return `
+                <div class="table-item" data-table="${fullTableName}" data-database="${database || ''}">
+                    <div class="table-header" draggable="true">
+                        <div class="table-name">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                            ${displayName}
                         </div>
-                    `).join('')}
+                        <button class="table-toggle">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="table-columns">
+                        ${table.columns.map(col => `
+                            <div class="column-item ${col.key_type === 'PRI' ? 'primary-key' : ''} ${col.foreign_key ? 'foreign-key' : ''}"
+                                 data-table="${fullTableName}" data-column="${col.name}">
+                                <span class="key-icon-container">${col.key_type === 'PRI' ? `<svg class="key-icon primary-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                </svg>` : ''}${col.foreign_key ? `<svg class="key-icon foreign-key-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                </svg>` : ''}</span>
+                                <span class="column-name">${col.name}</span>
+                                <span class="column-type">${col.data_type}</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        };
+
+        let html = '';
+
+        if (this.crossDatabaseMode) {
+            // Render current database tables first
+            html += `
+                <div class="database-group expanded" data-database="${this.currentDatabase}">
+                    <div class="database-group-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                        <span>${this.currentDatabase}</span>
+                        <span class="database-group-badge current">current</span>
+                        <svg class="database-group-toggle" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <div class="database-group-tables">
+                        ${this.schema.tables.map(table => renderTableItem(table)).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Render other databases
+            Object.entries(this.allDatabasesSchema).forEach(([dbName, schema]) => {
+                if (schema.tables && schema.tables.length > 0) {
+                    html += `
+                        <div class="database-group" data-database="${dbName}">
+                            <div class="database-group-header">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                </svg>
+                                <span>${dbName}</span>
+                                <span class="database-group-count">${schema.tables.length}</span>
+                                <svg class="database-group-toggle" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            <div class="database-group-tables">
+                                ${schema.tables.map(table => renderTableItem(table, dbName)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        } else {
+            // Normal mode - just show current database tables
+            html = this.schema.tables.map(table => renderTableItem(table)).join('');
+        }
+
+        tablesList.innerHTML = html;
+
+        // Bind database group toggle events
+        if (this.crossDatabaseMode) {
+            tablesList.querySelectorAll('.database-group-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    header.closest('.database-group').classList.toggle('expanded');
+                });
+            });
+        }
 
         // Bind events to new elements
         tablesList.querySelectorAll('.table-header').forEach(header => {
