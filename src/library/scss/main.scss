@@ -1157,7 +1157,54 @@ html[data-sidebar-collapsed="true"] #sidebar-resizer {
   border-radius: $border-radius;
   font-size: $font-size-xs;
   font-family: $font-mono;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   // Colors are applied via inline styles from JS (table colors)
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Drag and drop states
+  &.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &.drag-over-left {
+    position: relative;
+    margin-left: 8px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: -2px;
+      bottom: -2px;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: dropIndicatorPulse 0.5s ease-in-out infinite alternate;
+    }
+  }
+
+  &.drag-over-right {
+    position: relative;
+    margin-right: 8px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: -2px;
+      bottom: -2px;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: dropIndicatorPulse 0.5s ease-in-out infinite alternate;
+    }
+  }
 
   .tag-remove {
     @include button-reset;
@@ -6203,4 +6250,9 @@ select.form-input {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes dropIndicatorPulse {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
 }

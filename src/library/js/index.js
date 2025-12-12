@@ -33,6 +33,7 @@ class QueryBuilder {
         this.schema = null;
         this.selectedTables = []; // Array of { name, alias, colorIndex }
         this.selectedColumns = {}; // { tableKey: [columns] } - tableKey is alias or name
+        this.columnOrder = []; // Ordered array of { tableKey, column } for drag reordering
         this.joins = [];
         this.conditions = [];
         this.orderBy = [];
@@ -1129,6 +1130,7 @@ class QueryBuilder {
             queryType: this.currentQueryType,
             selectedTables: this.selectedTables,
             selectedColumns: this.selectedColumns,
+            columnOrder: this.columnOrder,
             joins: this.joins,
             conditions: this.conditions,
             orderBy: this.orderBy,
@@ -1170,6 +1172,7 @@ class QueryBuilder {
             // Clear current state
             this.selectedTables = [];
             this.selectedColumns = {};
+            this.columnOrder = [];
             this.joins = [];
             this.conditions = [];
             this.orderBy = [];
@@ -1191,6 +1194,11 @@ class QueryBuilder {
             // Restore selected columns
             if (state.selectedColumns) {
                 this.selectedColumns = { ...state.selectedColumns };
+            }
+
+            // Restore column order
+            if (state.columnOrder && Array.isArray(state.columnOrder)) {
+                this.columnOrder = [...state.columnOrder];
             }
 
             // Restore joins
@@ -1264,6 +1272,84 @@ class QueryBuilder {
             if (tableName) {
                 callback(tableName);
                 this.renderDropZoneTable(dropZone, tableName);
+            }
+        });
+    }
+
+    /**
+     * Setup drag and drop reordering for column tags within a container
+     * @param {HTMLElement} container - The container element
+     * @param {string} tagSelector - CSS selector for draggable tags
+     * @param {Function} onReorder - Callback function when order changes, receives (fromIndex, toIndex)
+     */
+    setupColumnDragReorder(container, tagSelector, onReorder) {
+        let draggedElement = null;
+        let draggedIndex = null;
+
+        container.addEventListener('dragstart', (e) => {
+            const tag = e.target.closest(tagSelector);
+            if (!tag) return;
+
+            draggedElement = tag;
+            draggedIndex = Array.from(container.querySelectorAll(tagSelector)).indexOf(tag);
+            tag.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+        });
+
+        container.addEventListener('dragend', (e) => {
+            const tag = e.target.closest(tagSelector);
+            if (tag) {
+                tag.classList.remove('dragging');
+            }
+            draggedElement = null;
+            draggedIndex = null;
+            // Remove all drag-over indicators
+            container.querySelectorAll(tagSelector).forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const tag = e.target.closest(tagSelector);
+            if (!tag || tag === draggedElement) return;
+
+            const tags = Array.from(container.querySelectorAll(tagSelector));
+            const targetIndex = tags.indexOf(tag);
+
+            // Clear all indicators
+            tags.forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+
+            // Show indicator on target
+            if (draggedIndex < targetIndex) {
+                tag.classList.add('drag-over-right');
+            } else {
+                tag.classList.add('drag-over-left');
+            }
+        });
+
+        container.addEventListener('dragleave', (e) => {
+            const tag = e.target.closest(tagSelector);
+            if (tag) {
+                tag.classList.remove('drag-over-left', 'drag-over-right');
+            }
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+
+            const tag = e.target.closest(tagSelector);
+            if (!tag || tag === draggedElement || draggedIndex === null) return;
+
+            const tags = Array.from(container.querySelectorAll(tagSelector));
+            const toIndex = tags.indexOf(tag);
+
+            // Clear indicators
+            tags.forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+
+            if (draggedIndex !== toIndex) {
+                onReorder(draggedIndex, toIndex);
             }
         });
     }
@@ -1413,6 +1499,66 @@ class QueryBuilder {
 
         // Update SQL preview for the current query type
         this.refreshCurrentSQLPreview();
+
+        // Clear results and explain tabs when switching query types
+        this.clearBottomPanelResults();
+    }
+
+    /**
+     * Clear results and explain tabs in the bottom panel
+     */
+    clearBottomPanelResults() {
+        // Clear results table
+        const resultsTable = document.getElementById('results-table');
+        if (resultsTable) {
+            const thead = resultsTable.querySelector('thead');
+            const tbody = resultsTable.querySelector('tbody');
+            if (thead) thead.innerHTML = '';
+            if (tbody) tbody.innerHTML = '';
+        }
+
+        // Show no results message
+        const noResults = document.getElementById('no-results');
+        if (noResults) {
+            noResults.style.display = 'flex';
+            noResults.textContent = 'Run a query to see results';
+        }
+
+        // Clear results count and time in header
+        const resultsCount = document.getElementById('results-count');
+        const resultsTime = document.getElementById('results-time');
+        if (resultsCount) resultsCount.textContent = '';
+        if (resultsTime) resultsTime.textContent = '';
+
+        // Clear results badge in tab
+        const resultsBadge = document.getElementById('results-badge');
+        if (resultsBadge) resultsBadge.textContent = '';
+
+        // Clear pagination info
+        const paginationStart = document.getElementById('pagination-start');
+        const paginationEnd = document.getElementById('pagination-end');
+        const paginationTotal = document.getElementById('pagination-total');
+        const paginationPages = document.getElementById('pagination-pages');
+        if (paginationStart) paginationStart.textContent = '0';
+        if (paginationEnd) paginationEnd.textContent = '0';
+        if (paginationTotal) paginationTotal.textContent = '0';
+        if (paginationPages) paginationPages.innerHTML = '';
+
+        // Disable pagination buttons
+        const paginationBtns = ['btn-first-page', 'btn-prev-page', 'btn-next-page', 'btn-last-page'];
+        paginationBtns.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) btn.disabled = true;
+        });
+
+        // Clear explain tab
+        const explainContent = document.getElementById('explain-content');
+        if (explainContent) {
+            explainContent.innerHTML = '<div class="placeholder">Run a query to see execution plan</div>';
+        }
+
+        // Hide data export buttons
+        this.updateDataExportButtons(false);
     }
 
     /**
@@ -2381,6 +2527,13 @@ class QueryBuilder {
         }
     }
 
+    reorderOrderBy(fromIndex, toIndex) {
+        const item = this.orderBy.splice(fromIndex, 1)[0];
+        this.orderBy.splice(toIndex, 0, item);
+        this.renderOrderBy();
+        this.updateSQLPreview();
+    }
+
     renderOrderBy() {
         const selectedContainer = document.getElementById('orderby-selected');
         const availableContainer = document.getElementById('orderby-available');
@@ -2409,7 +2562,7 @@ class QueryBuilder {
                     ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
                     : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
                 return `
-                    <span class="orderby-tag" data-column="${order.column}" style="${style}">
+                    <span class="orderby-tag" data-column="${order.column}" style="${style}" draggable="true">
                         ${order.column}
                         <button class="direction-toggle ${dirClass}" data-column="${order.column}" data-tooltip="Toggle direction (${order.direction})">${arrowIcon} ${order.direction}</button>
                         <button class="tag-remove" data-column="${order.column}">
@@ -2435,6 +2588,11 @@ class QueryBuilder {
                     e.stopPropagation();
                     this.removeFromOrderBy(btn.dataset.column);
                 });
+            });
+
+            // Setup drag reorder for ORDER BY
+            this.setupColumnDragReorder(selectedContainer, '.orderby-tag', (fromIndex, toIndex) => {
+                this.reorderOrderBy(fromIndex, toIndex);
             });
         }
 
@@ -2462,10 +2620,15 @@ class QueryBuilder {
     }
 
     selectAllColumns() {
+        this.columnOrder = []; // Reset column order
         this.selectedTables.forEach(tableEntry => {
             const tableKey = this.getTableKey(tableEntry);
             const allCols = this.getColumnsForTable(tableEntry.name);
             this.selectedColumns[tableKey] = [...allCols];
+            // Add to columnOrder
+            allCols.forEach(col => {
+                this.columnOrder.push({ tableKey, column: col });
+            });
         });
         this.renderColumns();
         this.renderGroupBy();
@@ -2474,6 +2637,7 @@ class QueryBuilder {
     }
 
     selectNoColumns() {
+        this.columnOrder = []; // Clear column order
         this.selectedTables.forEach(tableEntry => {
             const tableKey = this.getTableKey(tableEntry);
             this.selectedColumns[tableKey] = [];
@@ -2490,6 +2654,8 @@ class QueryBuilder {
         }
         if (!this.selectedColumns[tableKey].includes(columnName)) {
             this.selectedColumns[tableKey].push(columnName);
+            // Add to columnOrder for drag reordering
+            this.columnOrder.push({ tableKey, column: columnName });
             this.renderColumns();
             this.renderGroupBy();
             this.renderOrderBy();
@@ -2500,11 +2666,20 @@ class QueryBuilder {
     removeColumn(tableKey, columnName) {
         if (this.selectedColumns[tableKey]) {
             this.selectedColumns[tableKey] = this.selectedColumns[tableKey].filter(c => c !== columnName);
+            // Remove from columnOrder
+            this.columnOrder = this.columnOrder.filter(c => !(c.tableKey === tableKey && c.column === columnName));
             this.renderColumns();
             this.renderGroupBy();
             this.renderOrderBy();
             this.updateSQLPreview();
         }
+    }
+
+    reorderColumns(fromIndex, toIndex) {
+        const item = this.columnOrder.splice(fromIndex, 1)[0];
+        this.columnOrder.splice(toIndex, 0, item);
+        this.renderColumns();
+        this.updateSQLPreview();
     }
 
     renderColumns() {
@@ -2531,7 +2706,26 @@ class QueryBuilder {
             });
         });
 
-        const selectedCols = allColumnsWithColors.filter(c => c.isSelected);
+        // Build selected columns ordered by columnOrder (for drag reordering)
+        const selectedCols = [];
+        // First add columns that exist in columnOrder (in order)
+        this.columnOrder.forEach(orderItem => {
+            const col = allColumnsWithColors.find(c =>
+                c.tableKey === orderItem.tableKey && c.column === orderItem.column && c.isSelected
+            );
+            if (col) {
+                selectedCols.push(col);
+            }
+        });
+        // Add any selected columns not in columnOrder (for backwards compatibility)
+        allColumnsWithColors.forEach(col => {
+            if (col.isSelected && !selectedCols.includes(col)) {
+                selectedCols.push(col);
+                // Also add to columnOrder
+                this.columnOrder.push({ tableKey: col.tableKey, column: col.column });
+            }
+        });
+
         const availableCols = allColumnsWithColors.filter(c => !c.isSelected);
 
         // Render selected columns
@@ -2545,7 +2739,7 @@ class QueryBuilder {
             selectedContainer.innerHTML = selectedCols.map(col => {
                 const style = `background: ${col.color.bg}; border: 1px solid ${col.color.border}; color: ${col.color.text}`;
                 return `
-                    <span class="column-tag" data-table="${col.tableKey}" data-column="${col.column}" style="${style}">
+                    <span class="column-tag" data-table="${col.tableKey}" data-column="${col.column}" style="${style}" draggable="true">
                         ${col.fullName}
                         <button class="tag-remove" data-table="${col.tableKey}" data-column="${col.column}">
                             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -2562,6 +2756,11 @@ class QueryBuilder {
                     e.stopPropagation();
                     this.removeColumn(btn.dataset.table, btn.dataset.column);
                 });
+            });
+
+            // Setup drag reorder for COLUMNS
+            this.setupColumnDragReorder(selectedContainer, '.column-tag', (fromIndex, toIndex) => {
+                this.reorderColumns(fromIndex, toIndex);
             });
         }
 
@@ -2599,6 +2798,13 @@ class QueryBuilder {
         this.updateSQLPreview();
     }
 
+    reorderGroupBy(fromIndex, toIndex) {
+        const item = this.groupBy.splice(fromIndex, 1)[0];
+        this.groupBy.splice(toIndex, 0, item);
+        this.renderGroupBy();
+        this.updateSQLPreview();
+    }
+
     renderGroupBy() {
         const selectedContainer = document.getElementById('groupby-selected');
         const availableContainer = document.getElementById('groupby-available');
@@ -2620,7 +2826,7 @@ class QueryBuilder {
                     ? `background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text}`
                     : '';
                 return `
-                    <span class="groupby-tag" data-column="${col}" style="${style}">
+                    <span class="groupby-tag" data-column="${col}" style="${style}" draggable="true">
                         ${col}
                         <button class="tag-remove" data-column="${col}">
                             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -2637,6 +2843,11 @@ class QueryBuilder {
                     e.stopPropagation();
                     this.removeFromGroupBy(btn.dataset.column);
                 });
+            });
+
+            // Setup drag reorder for GROUP BY
+            this.setupColumnDragReorder(selectedContainer, '.groupby-tag', (fromIndex, toIndex) => {
+                this.reorderGroupBy(fromIndex, toIndex);
             });
         }
 
@@ -2713,17 +2924,36 @@ class QueryBuilder {
 
         let sql = 'SELECT ';
 
-        // Columns
+        // Columns - use columnOrder for ordering if available
         const columns = [];
-        this.selectedTables.forEach(tableEntry => {
-            const tableKey = this.getTableKey(tableEntry);
-            const tableCols = this.selectedColumns[tableKey] || [];
-            if (tableCols.length === 0) {
-                columns.push(`${tableKey}.*`);
-            } else {
-                tableCols.forEach(col => columns.push(`${tableKey}.${col}`));
-            }
-        });
+        if (this.columnOrder.length > 0) {
+            // Use columnOrder for user-defined order
+            this.columnOrder.forEach(orderItem => {
+                // Only include if this column is still selected
+                if (this.selectedColumns[orderItem.tableKey]?.includes(orderItem.column)) {
+                    columns.push(`${orderItem.tableKey}.${orderItem.column}`);
+                }
+            });
+            // Check if any tables have no columns selected (use *)
+            this.selectedTables.forEach(tableEntry => {
+                const tableKey = this.getTableKey(tableEntry);
+                const tableCols = this.selectedColumns[tableKey] || [];
+                if (tableCols.length === 0) {
+                    columns.push(`${tableKey}.*`);
+                }
+            });
+        } else {
+            // Fallback to original behavior
+            this.selectedTables.forEach(tableEntry => {
+                const tableKey = this.getTableKey(tableEntry);
+                const tableCols = this.selectedColumns[tableKey] || [];
+                if (tableCols.length === 0) {
+                    columns.push(`${tableKey}.*`);
+                } else {
+                    tableCols.forEach(col => columns.push(`${tableKey}.${col}`));
+                }
+            });
+        }
         sql += columns.join(', ') || '*';
 
         // FROM with alias support
@@ -4005,6 +4235,7 @@ class QueryBuilder {
     clearSelect() {
         this.selectedTables = [];
         this.selectedColumns = {};
+        this.columnOrder = [];
         this.joins = [];
         this.conditions = [];
         this.orderBy = [];
