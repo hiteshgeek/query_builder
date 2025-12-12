@@ -33,6 +33,9 @@ class DataBrowser {
         // Loading state
         this.isLoading = false;
 
+        // Last generated SQL for export
+        this.lastSQL = '';
+
         // Components
         this.dataGrid = null;
 
@@ -610,7 +613,13 @@ class DataBrowser {
      * Update SQL preview in bottom panel
      */
     updateSQL() {
-        if (!this.onSQLChange) return;
+        if (!this.selectedTable) {
+            this.lastSQL = '';
+            if (this.onSQLChange) {
+                this.onSQLChange('-- Select a table from the sidebar to browse data');
+            }
+            return;
+        }
 
         let sql = `SELECT * FROM \`${this.selectedTable}\``;
 
@@ -638,11 +647,23 @@ class DataBrowser {
 
         sql += ';';
 
-        // Add comment with row info
+        // Store the actual SQL (without comments) for export
+        this.lastSQL = sql;
+
+        // Add comment with row info for display
         sql += `\n\n-- Total rows: ${this.totalRows.toLocaleString()}`;
         sql += `\n-- Page ${this.page} of ${this.totalPages}`;
 
-        this.onSQLChange(sql);
+        if (this.onSQLChange) {
+            this.onSQLChange(sql);
+        }
+    }
+
+    /**
+     * Get the last generated SQL query
+     */
+    getLastSQL() {
+        return this.lastSQL;
     }
 
     /**

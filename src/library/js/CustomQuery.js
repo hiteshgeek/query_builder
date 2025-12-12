@@ -1,5 +1,5 @@
 /**
- * CustomQuery - Custom SQL query editor and executor
+ * CustomQuery - Custom SQL query editor and executor with CodeMirror
  */
 
 import toast from './Toast.js';
@@ -14,9 +14,8 @@ class CustomQuery {
         this.recentQueries = JSON.parse(localStorage.getItem('qb-recent-custom-queries') || '[]');
         this.isExecuting = false;
 
-        // DOM Elements
+        // CodeMirror instance
         this.editor = null;
-        this.lineNumbers = null;
 
         // Templates
         this.templates = {
@@ -36,68 +35,113 @@ class CustomQuery {
     }
 
     init() {
-        this.editor = document.getElementById('custom-sql-editor');
-        this.lineNumbers = document.getElementById('editor-line-numbers');
+        const textarea = document.getElementById('custom-sql-editor');
+        if (!textarea) return;
 
-        if (!this.editor) return;
+        // Wait for CodeMirror to be available
+        if (typeof CodeMirror === 'undefined') {
+            // Retry after a short delay
+            setTimeout(() => this.init(), 100);
+            return;
+        }
 
-        this.bindEvents();
-        this.updateLineNumbers();
-        this.renderRecentQueries();
-    }
+        // Get current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const cmTheme = currentTheme === 'dark' ? 'dracula' : 'default';
 
-    bindEvents() {
-        // Editor input - update line numbers and SQL preview
-        this.editor.addEventListener('input', () => {
-            this.currentQuery = this.editor.value;
-            this.updateLineNumbers();
+        // Initialize CodeMirror
+        this.editor = CodeMirror.fromTextArea(textarea, {
+            mode: 'text/x-mysql',
+            theme: cmTheme,
+            lineNumbers: true,
+            lineWrapping: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentWithTabs: false,
+            tabSize: 4,
+            indentUnit: 4,
+            smartIndent: true,
+            autofocus: false,
+            extraKeys: {
+                'Ctrl-Enter': () => this.execute(),
+                'Cmd-Enter': () => this.execute(),
+                'Ctrl-Space': 'autocomplete',
+                'Tab': (cm) => {
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection('add');
+                    } else {
+                        cm.replaceSelection('    ', 'end');
+                    }
+                }
+            },
+            hintOptions: {
+                completeSingle: false,
+                tables: {} // Will be populated with schema
+            }
+        });
+
+        // Set placeholder
+        this.editor.setValue('');
+
+        // Listen for changes
+        this.editor.on('change', () => {
+            this.currentQuery = this.editor.getValue();
             this.updateSQL();
         });
 
-        // Editor scroll - sync line numbers
-        this.editor.addEventListener('scroll', () => {
-            if (this.lineNumbers) {
-                this.lineNumbers.scrollTop = this.editor.scrollTop;
-            }
-        });
+        // Listen for theme changes
+        this.observeThemeChanges();
 
-        // Keyboard shortcuts
-        this.editor.addEventListener('keydown', (e) => {
-            // Ctrl+Enter to execute
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                this.execute();
-            }
+        this.bindEvents();
+        this.renderRecentQueries();
 
-            // Tab for indentation
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = this.editor.selectionStart;
-                const end = this.editor.selectionEnd;
-                const value = this.editor.value;
+        // Hide the original line numbers div since CodeMirror has its own
+        const lineNumbers = document.getElementById('editor-line-numbers');
+        if (lineNumbers) {
+            lineNumbers.style.display = 'none';
+        }
+    }
 
-                if (e.shiftKey) {
-                    // Remove tab at line start
-                    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-                    if (value.substring(lineStart, lineStart + 4) === '    ') {
-                        this.editor.value = value.substring(0, lineStart) + value.substring(lineStart + 4);
-                        this.editor.selectionStart = this.editor.selectionEnd = start - 4;
-                    } else if (value.substring(lineStart, lineStart + 1) === '\t') {
-                        this.editor.value = value.substring(0, lineStart) + value.substring(lineStart + 1);
-                        this.editor.selectionStart = this.editor.selectionEnd = start - 1;
-                    }
-                } else {
-                    // Insert 4 spaces
-                    this.editor.value = value.substring(0, start) + '    ' + value.substring(end);
-                    this.editor.selectionStart = this.editor.selectionEnd = start + 4;
+    /**
+     * Observe theme changes and update CodeMirror theme
+     */
+    observeThemeChanges() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'data-theme' && this.editor) {
+                    const theme = document.documentElement.getAttribute('data-theme');
+                    this.editor.setOption('theme', theme === 'dark' ? 'dracula' : 'default');
                 }
-
-                this.currentQuery = this.editor.value;
-                this.updateLineNumbers();
-                this.updateSQL();
-            }
+            });
         });
 
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
+        });
+    }
+
+    /**
+     * Update schema for autocomplete
+     */
+    updateSchema(schema) {
+        if (!this.editor || !schema) return;
+
+        const tables = {};
+        if (schema.tables) {
+            schema.tables.forEach(table => {
+                const columns = schema.columns[table.name] || [];
+                tables[table.name] = columns.map(col => col.name);
+            });
+        }
+
+        this.editor.setOption('hintOptions', {
+            completeSingle: false,
+            tables: tables
+        });
+    }
+
+    bindEvents() {
         // Execute button
         document.getElementById('btn-execute-custom')?.addEventListener('click', () => this.execute());
 
@@ -126,31 +170,11 @@ class CustomQuery {
             if (queryItem) {
                 const index = parseInt(queryItem.dataset.index);
                 if (!isNaN(index) && this.recentQueries[index]) {
-                    this.editor.value = this.recentQueries[index].sql;
-                    this.currentQuery = this.editor.value;
-                    this.updateLineNumbers();
-                    this.updateSQL();
+                    this.setSQL(this.recentQueries[index].sql);
                     toast.success('Query loaded');
                 }
             }
         });
-    }
-
-    /**
-     * Update line numbers
-     */
-    updateLineNumbers() {
-        if (!this.lineNumbers || !this.editor) return;
-
-        const lines = this.editor.value.split('\n');
-        const lineCount = lines.length;
-
-        let html = '';
-        for (let i = 1; i <= lineCount; i++) {
-            html += `<div class="line-number">${i}</div>`;
-        }
-
-        this.lineNumbers.innerHTML = html;
     }
 
     /**
@@ -174,10 +198,10 @@ class CustomQuery {
      */
     setSQL(sql) {
         if (this.editor) {
-            this.editor.value = sql;
+            this.editor.setValue(sql);
             this.currentQuery = sql;
-            this.updateLineNumbers();
             this.updateSQL();
+            this.editor.focus();
         }
     }
 
@@ -187,23 +211,17 @@ class CustomQuery {
     insertTemplate(template) {
         if (!this.editor) return;
 
-        const start = this.editor.selectionStart;
-        const end = this.editor.selectionEnd;
-        const value = this.editor.value;
+        const currentValue = this.editor.getValue();
 
         // If there's existing content, add newlines
-        if (value.trim()) {
-            this.editor.value = value.substring(0, start) + '\n\n' + template + value.substring(end);
-            this.editor.selectionStart = start + 2;
-            this.editor.selectionEnd = start + 2 + template.length;
+        if (currentValue.trim()) {
+            const cursor = this.editor.getCursor();
+            this.editor.replaceRange('\n\n' + template, cursor);
         } else {
-            this.editor.value = template;
-            this.editor.selectionStart = 0;
-            this.editor.selectionEnd = template.length;
+            this.editor.setValue(template);
         }
 
-        this.currentQuery = this.editor.value;
-        this.updateLineNumbers();
+        this.currentQuery = this.editor.getValue();
         this.updateSQL();
         this.editor.focus();
     }
@@ -368,9 +386,8 @@ class CustomQuery {
      */
     clear() {
         if (this.editor) {
-            this.editor.value = '';
+            this.editor.setValue('');
             this.currentQuery = '';
-            this.updateLineNumbers();
             this.updateSQL();
             this.editor.focus();
         }
@@ -428,9 +445,8 @@ class CustomQuery {
         // Trim
         sql = sql.trim();
 
-        this.editor.value = sql;
+        this.editor.setValue(sql);
         this.currentQuery = sql;
-        this.updateLineNumbers();
         this.updateSQL();
 
         toast.success('SQL formatted');

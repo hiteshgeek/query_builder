@@ -66,6 +66,9 @@ class QueryBuilder {
         this.userManager = null;
         this.permissionManager = null;
 
+        // SQL Preview CodeMirror instance
+        this.sqlPreviewEditor = null;
+
         // Query history and export
         this.queryHistory = new QueryHistory();
         this.queryExport = new QueryExport();
@@ -90,10 +93,57 @@ class QueryBuilder {
         this.bindModeEvents();
         this.restorePanelStates();
         this.restoreAppMode();
+        this.initSQLPreviewEditor();
         await this.loadDatabases();
         await this.loadSchema();
         this.initSubBuilders();
         this.restoreCrossDatabaseMode();
+        // Update SQL preview with formatted initial state
+        this.refreshCurrentSQLPreview();
+    }
+
+    /**
+     * Initialize CodeMirror for SQL preview in bottom panel
+     */
+    initSQLPreviewEditor() {
+        const textarea = document.getElementById('sql-preview-editor');
+        if (!textarea) return;
+
+        // Wait for CodeMirror to be available
+        if (typeof CodeMirror === 'undefined') {
+            setTimeout(() => this.initSQLPreviewEditor(), 100);
+            return;
+        }
+
+        // Get current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const cmTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+
+        // Initialize CodeMirror in read-only mode
+        this.sqlPreviewEditor = CodeMirror.fromTextArea(textarea, {
+            mode: 'text/x-mysql',
+            theme: cmTheme,
+            lineNumbers: true,
+            lineWrapping: true,
+            readOnly: true,
+            cursorBlinkRate: -1, // Hide cursor in read-only mode
+            matchBrackets: true
+        });
+
+        // Listen for theme changes
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'data-theme' && this.sqlPreviewEditor) {
+                    const theme = document.documentElement.getAttribute('data-theme');
+                    this.sqlPreviewEditor.setOption('theme', theme === 'dark' ? 'dracula' : 'default');
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
+        });
     }
 
     async restoreCrossDatabaseMode() {
@@ -387,11 +437,122 @@ class QueryBuilder {
     }
 
     updateBottomPanelSQL(sql) {
-        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
-        if (bottomPreviewEl) {
-            bottomPreviewEl.textContent = sql;
-            hljs.highlightElement(bottomPreviewEl);
+        // Use CodeMirror editor if available
+        if (this.sqlPreviewEditor) {
+            // Format the SQL before displaying
+            const formattedSQL = this.formatSQL(sql || '');
+            this.sqlPreviewEditor.setValue(formattedSQL);
         }
+    }
+
+    /**
+     * Format SQL query for display (PHPMyAdmin style)
+     */
+    formatSQL(sql) {
+        if (!sql || sql.startsWith('--')) return sql;
+
+        // Keywords to uppercase
+        const keywords = [
+            'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN',
+            'IS', 'NULL', 'AS', 'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET',
+            'ASC', 'DESC', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'CROSS', 'JOIN', 'ON',
+            'SET', 'VALUES', 'INTO', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'TABLE',
+            'ALTER', 'DROP', 'INDEX', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES',
+            'CONSTRAINT', 'DEFAULT', 'AUTO_INCREMENT', 'UNIQUE', 'ENGINE', 'CHARSET',
+            'COLLATE', 'IF', 'EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+            'DISTINCT', 'ALL', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CONCAT',
+            'COALESCE', 'IFNULL', 'NULLIF', 'NOW', 'CURRENT_TIMESTAMP', 'TRUE', 'FALSE',
+            'UNION', 'EXCEPT', 'INTERSECT', 'USING', 'NATURAL', 'FULL'
+        ];
+
+        let formatted = sql;
+
+        // Normalize whitespace first
+        formatted = formatted.replace(/\s+/g, ' ').trim();
+
+        // Uppercase keywords (case-insensitive replace)
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+            formatted = formatted.replace(regex, keyword);
+        });
+
+        // Main clause keywords that start on new line (no indent)
+        const mainClauses = [
+            'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
+            'LIMIT', 'OFFSET', 'INSERT INTO', 'UPDATE', 'DELETE FROM',
+            'SET', 'VALUES', 'UNION', 'UNION ALL'
+        ];
+
+        // Sort by length (longest first) to handle multi-word keywords first
+        const sortedMainClauses = [...mainClauses].sort((a, b) => b.length - a.length);
+
+        // Add newlines before main clauses
+        sortedMainClauses.forEach(clause => {
+            const regex = new RegExp(`\\s+${clause.replace(/ /g, '\\s+')}\\b`, 'gi');
+            formatted = formatted.replace(regex, `\n${clause}`);
+        });
+
+        // Handle JOIN clauses - they get their own line
+        const joinTypes = ['LEFT OUTER JOIN', 'RIGHT OUTER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'CROSS JOIN', 'JOIN'];
+        joinTypes.forEach(join => {
+            const regex = new RegExp(`\\s+${join.replace(/ /g, '\\s+')}\\b`, 'gi');
+            formatted = formatted.replace(regex, `\n${join}`);
+        });
+
+        // Split columns after SELECT - each on new line with indent
+        formatted = formatted.replace(/^SELECT\s+/i, 'SELECT\n    ');
+        formatted = formatted.replace(/SELECT\n    DISTINCT\s+/i, 'SELECT DISTINCT\n    ');
+
+        // Split FROM - table name on new indented line
+        formatted = formatted.replace(/\bFROM\s+/gi, 'FROM\n    ');
+
+        // Split ORDER BY columns - each on new line with indent
+        formatted = formatted.replace(/ORDER BY\s+/gi, 'ORDER BY\n    ');
+
+        // Split GROUP BY columns - each on new line with indent
+        formatted = formatted.replace(/GROUP BY\s+/gi, 'GROUP BY\n    ');
+
+        // Split WHERE - condition on new indented line
+        formatted = formatted.replace(/\bWHERE\s+/gi, 'WHERE\n    ');
+
+        // Split HAVING - condition on new indented line
+        formatted = formatted.replace(/\bHAVING\s+/gi, 'HAVING\n    ');
+
+        // Split SET columns for UPDATE
+        formatted = formatted.replace(/\bSET\s+/gi, 'SET\n    ');
+
+        // Split commas - add newline and indent after each comma (for columns)
+        formatted = formatted.replace(/,\s*/g, ',\n    ');
+
+        // Ensure main clauses start on new line (even if directly after content)
+        sortedMainClauses.forEach(clause => {
+            // Match clause that's not at start of line
+            const regex = new RegExp(`([^\\n])\\s*(${clause.replace(/ /g, '\\s+')})\\b`, 'gi');
+            formatted = formatted.replace(regex, `$1\n${clause}`);
+        });
+
+        // Ensure JOIN clauses start on new line
+        joinTypes.forEach(join => {
+            const regex = new RegExp(`([^\\n])\\s*(${join.replace(/ /g, '\\s+')})\\b`, 'gi');
+            formatted = formatted.replace(regex, `$1\n${join}`);
+        });
+
+        // Handle AND/OR in WHERE clause - indent them
+        formatted = formatted.replace(/\s+(AND|OR)\s+/gi, '\n    $1 ');
+
+        // Fix ON clause - keep on same line as JOIN
+        formatted = formatted.replace(/\s+ON\s+/gi, ' ON ');
+
+        // Clean up multiple newlines
+        formatted = formatted.replace(/\n\n+/g, '\n');
+
+        // Trim each line
+        formatted = formatted.split('\n').map(line => line.trimEnd()).join('\n');
+
+        // Remove leading/trailing whitespace
+        formatted = formatted.trim();
+
+        return formatted;
     }
 
     bindEvents() {
@@ -1237,6 +1398,8 @@ class QueryBuilder {
                 'update': 'Update Data',
                 'delete': 'Delete Data',
                 'alter': 'Execute ALTER',
+                'create': 'Create Table',
+                'custom': 'Execute Query',
                 'browse': 'Refresh Data',
                 'users': 'Refresh Users'
             };
@@ -1321,6 +1484,12 @@ class QueryBuilder {
                 return this.deleteBuilder ? this.deleteBuilder.getSQL() : '';
             case 'alter':
                 return this.alterBuilder ? this.alterBuilder.getSQL() : '';
+            case 'create':
+                return this.createTableBuilder ? this.createTableBuilder.getSQL() : '';
+            case 'custom':
+                return this.customQuery ? this.customQuery.getSQL() : '';
+            case 'browse':
+                return this.dataBrowser ? this.dataBrowser.getLastSQL() : '';
             default:
                 return '';
         }
@@ -1333,15 +1502,14 @@ class QueryBuilder {
         const sql = this.getCurrentSQL();
         if (!sql) return false;
 
-        // Check for placeholder texts
-        const placeholders = [
-            'SELECT * FROM table_name;',
-            '-- Select a table',
-            '-- No table selected',
-            ''
-        ];
+        // Trim and check if empty
+        const trimmed = sql.trim();
+        if (!trimmed) return false;
 
-        return !placeholders.some(p => sql.startsWith(p) || sql === p);
+        // Check for placeholder/comment-only texts
+        if (trimmed.startsWith('--')) return false;
+
+        return true;
     }
 
     copySQL() {
@@ -1351,7 +1519,9 @@ class QueryBuilder {
             return;
         }
 
-        navigator.clipboard.writeText(sql).then(() => {
+        // Format the SQL before copying
+        const formattedSQL = this.formatSQL(sql);
+        navigator.clipboard.writeText(formattedSQL).then(() => {
             toast.success('SQL copied to clipboard');
         }).catch(() => {
             toast.error('Failed to copy SQL');
@@ -1392,6 +1562,9 @@ class QueryBuilder {
             }
             if (this.dataBrowser) {
                 this.dataBrowser.updateSchema(this.schema);
+            }
+            if (this.customQuery) {
+                this.customQuery.updateSchema(this.schema);
             }
         } catch (error) {
             tablesList.innerHTML = `<div class="loading">Error: ${error.message}</div>`;
@@ -2645,20 +2818,17 @@ class QueryBuilder {
 
     updateSQLPreview() {
         const sql = this.buildSQL();
+        const formattedSQL = this.formatSQL(sql);
 
         // Update inline SQL preview (in visual builder)
         const previewEl = document.querySelector('#sql-preview code');
         if (previewEl) {
-            previewEl.textContent = sql;
+            previewEl.textContent = formattedSQL;
             hljs.highlightElement(previewEl);
         }
 
-        // Update bottom panel SQL preview
-        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
-        if (bottomPreviewEl) {
-            bottomPreviewEl.textContent = sql;
-            hljs.highlightElement(bottomPreviewEl);
-        }
+        // Update bottom panel SQL preview using CodeMirror
+        this.updateBottomPanelSQL(sql);
     }
 
     async runQuery() {
@@ -3198,6 +3368,9 @@ class QueryBuilder {
         // Store results for export
         this.lastResults = data;
 
+        // Show/hide data export buttons based on results
+        this.updateDataExportButtons(data.rows && data.rows.length > 0);
+
         // Add to history
         if (sql) {
             this.queryHistory.addQuery(sql, 'SELECT', data.row_count, data.execution_time_ms);
@@ -3225,6 +3398,21 @@ class QueryBuilder {
         table.querySelector('tbody').innerHTML = data.rows.map(row => `
             <tr>${columns.map(c => `<td>${row[c] ?? 'NULL'}</td>`).join('')}</tr>
         `).join('');
+    }
+
+    /**
+     * Show or hide data export buttons (CSV, JSON) based on whether results exist
+     */
+    updateDataExportButtons(hasResults) {
+        const csvBtn = document.getElementById('btn-export-csv');
+        const jsonBtn = document.getElementById('btn-export-json');
+
+        if (csvBtn) {
+            csvBtn.style.display = hasResults ? '' : 'none';
+        }
+        if (jsonBtn) {
+            jsonBtn.style.display = hasResults ? '' : 'none';
+        }
     }
 
     displayExplain(rows) {
@@ -3258,7 +3446,9 @@ class QueryBuilder {
             toast.warning('No query to export');
             return;
         }
-        this.queryExport.exportSQL(sql, 'query');
+        // Format the SQL before exporting
+        const formattedSQL = this.formatSQL(sql);
+        this.queryExport.exportSQL(formattedSQL, 'query');
     }
 
     exportCSV() {
@@ -3266,7 +3456,7 @@ class QueryBuilder {
             toast.warning('No results to export. Run a query first.');
             return;
         }
-        this.queryExport.exportCSV(this.lastResults.rows, 'results');
+        this.queryExport.exportCSV({ rows: this.lastResults.rows }, 'results');
     }
 
     exportJSON() {
@@ -3274,7 +3464,7 @@ class QueryBuilder {
             toast.warning('No results to export. Run a query first.');
             return;
         }
-        this.queryExport.exportJSON(this.lastResults.rows, 'results');
+        this.queryExport.exportJSON({ rows: this.lastResults.rows }, 'results');
     }
 
     // Sidebar collapse/expand
@@ -3431,12 +3621,8 @@ class QueryBuilder {
         // Switch to correct query type
         this.switchQueryType(queryType);
 
-        // Update SQL preview
-        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
-        if (bottomPreviewEl) {
-            bottomPreviewEl.textContent = sql;
-            hljs.highlightElement(bottomPreviewEl);
-        }
+        // Update SQL preview using CodeMirror
+        this.updateBottomPanelSQL(sql);
 
         // Parse and populate based on query type
         if (queryType === 'select') {

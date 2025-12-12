@@ -16,6 +16,10 @@ $basePath = get_base_path();
     <link rel="icon" type="image/svg+xml" href="<?= $basePath ?>/favicon.svg">
     <link rel="stylesheet" href="<?= asset('query-builder.css') ?>">
     <link rel="stylesheet" href="<?= asset('main.css') ?>">
+    <!-- CodeMirror CDN for SQL Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
     <!-- Prevent FOUC by setting theme and panel states before CSS loads -->
     <script>
         (function() {
@@ -1234,7 +1238,7 @@ $basePath = get_base_path();
                         </svg>
                         SQL
                     </button>
-                    <button class="btn-sm" id="btn-export-csv" data-tooltip="Export CSV">
+                    <button class="btn-sm data-export-btn" id="btn-export-csv" data-tooltip="Export CSV" style="display: none;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -1242,7 +1246,7 @@ $basePath = get_base_path();
                         </svg>
                         CSV
                     </button>
-                    <button class="btn-sm" id="btn-export-json" data-tooltip="Export JSON">
+                    <button class="btn-sm data-export-btn" id="btn-export-json" data-tooltip="Export JSON" style="display: none;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -1270,7 +1274,7 @@ $basePath = get_base_path();
             <div class="bottom-panel-content active" id="bottom-sql-preview">
                 <div class="bottom-sql-content">
                     <div class="sql-preview-wrapper">
-                        <pre id="sql-preview-bottom"><code class="language-sql">SELECT * FROM table_name;</code></pre>
+                        <textarea id="sql-preview-editor" class="sql-preview-textarea">-- Select a table to build query</textarea>
                     </div>
                 </div>
             </div>
@@ -1469,6 +1473,13 @@ $basePath = get_base_path();
             apiBase: '<?= $basePath ?>/api'
         };
     </script>
+    <!-- CodeMirror CDN Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
     <script type="module" src="<?= asset('query-builder.js') ?>"></script>
     <script nomodule src="<?= asset('query-builder.js', 'nomodule') ?>"></script>
 </body>
