@@ -21,6 +21,7 @@ import resizeManager from './ResizeManager.js';
 import savedQueries from './SavedQueries.js';
 import CreateTableBuilder from './CreateTableBuilder.js';
 import DataBrowser from './DataBrowser.js';
+import CustomQuery from './CustomQuery.js';
 
 hljs.registerLanguage('sql', sql);
 
@@ -244,6 +245,12 @@ class QueryBuilder {
             this.dataBrowser.updateSchema(this.schema);
         }
 
+        // Initialize Custom Query
+        this.customQuery = new CustomQuery(
+            (sql) => this.updateCustomSQLPreview(sql),
+            (results) => this.handleCustomQueryResults(results)
+        );
+
         // Initialize Permission Manager (needs to be before UserManager)
         this.permissionManager = new PermissionManager(this.typeToConfirm);
 
@@ -288,6 +295,95 @@ class QueryBuilder {
 
     updateBrowseSQLPreview(sql) {
         this.updateBottomPanelSQL(sql);
+    }
+
+    updateCustomSQLPreview(sql) {
+        this.updateBottomPanelSQL(sql);
+    }
+
+    handleCustomQueryResults(results) {
+        // Update results count and time in bottom panel
+        const countEl = document.getElementById('results-count');
+        const timeEl = document.getElementById('results-time');
+        const badgeEl = document.getElementById('results-badge');
+
+        if (results.queryType === 'SELECT') {
+            if (countEl) countEl.textContent = `${results.rowCount} row${results.rowCount !== 1 ? 's' : ''}`;
+            if (badgeEl) badgeEl.textContent = results.rowCount;
+
+            // Render results table
+            this.renderResults(results.rows, results.columns);
+        } else {
+            const affected = results.affectedRows || 0;
+            if (countEl) countEl.textContent = `${affected} row${affected !== 1 ? 's' : ''} affected`;
+            if (badgeEl) badgeEl.textContent = affected;
+
+            // Clear results table for non-SELECT
+            this.renderResults([], []);
+        }
+
+        if (timeEl) timeEl.textContent = `${results.executionTime}s`;
+
+        // Switch to results tab
+        this.switchBottomTab('results');
+    }
+
+    renderResults(rows, columns) {
+        const table = document.getElementById('results-table');
+        const noResults = document.getElementById('no-results');
+
+        if (!table) return;
+
+        if (!rows || rows.length === 0) {
+            table.querySelector('thead').innerHTML = '';
+            table.querySelector('tbody').innerHTML = '';
+            if (noResults) noResults.style.display = 'flex';
+            return;
+        }
+
+        if (noResults) noResults.style.display = 'none';
+
+        // Render header
+        const headerCols = columns.length > 0
+            ? columns.map(col => col.name)
+            : Object.keys(rows[0]);
+
+        table.querySelector('thead').innerHTML = `
+            <tr>
+                ${headerCols.map(col => `<th>${this.escapeHtml(col)}</th>`).join('')}
+            </tr>
+        `;
+
+        // Render rows
+        table.querySelector('tbody').innerHTML = rows.map(row => `
+            <tr>
+                ${headerCols.map(col => {
+                    const value = row[col];
+                    if (value === null) {
+                        return '<td class="null-value"><span class="null-badge">NULL</span></td>';
+                    }
+                    return `<td>${this.escapeHtml(String(value))}</td>`;
+                }).join('')}
+            </tr>
+        `).join('');
+    }
+
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    switchBottomTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.bottom-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+
+        // Update tab content
+        document.querySelectorAll('.bottom-panel-content').forEach(content => {
+            content.classList.toggle('active', content.id === `bottom-${tabName}`);
+        });
     }
 
     updateBottomPanelSQL(sql) {

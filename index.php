@@ -298,6 +298,13 @@ $basePath = get_base_path();
                         CREATE
                     </button>
                                         <span class="query-type-divider"></span>
+                    <button class="query-type-tab" data-type="custom">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"/>
+                            <polyline points="8 6 2 12 8 18"/>
+                        </svg>
+                        CUSTOM
+                    </button>
                     <button class="query-type-tab" data-type="users">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -915,6 +922,138 @@ $basePath = get_base_path();
                                             Copy Structure
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CUSTOM Query Panel -->
+                <div class="builder-panel query-panel custom-panel" data-panel="custom">
+                    <div class="panel-header">
+                        <h3>Custom SQL Query</h3>
+                        <div class="panel-header-actions">
+                            <button class="btn-sm" id="btn-format-sql" data-tooltip="Format SQL">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="21" y1="10" x2="3" y2="10"/>
+                                    <line x1="21" y1="6" x2="3" y2="6"/>
+                                    <line x1="21" y1="14" x2="3" y2="14"/>
+                                    <line x1="21" y1="18" x2="3" y2="18"/>
+                                </svg>
+                                Format
+                            </button>
+                            <button class="btn-sm" id="btn-clear-custom" data-tooltip="Clear Query">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                                Clear
+                            </button>
+                            <button class="btn-sm btn-primary-sm" id="btn-execute-custom" data-tooltip="Execute Query (Ctrl+Enter)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                Execute
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-content custom-panel-content">
+                        <!-- SQL Editor -->
+                        <div class="custom-query-editor">
+                            <div class="editor-toolbar">
+                                <div class="editor-toolbar-left">
+                                    <span class="editor-label">Write your SQL query:</span>
+                                </div>
+                                <div class="editor-toolbar-right">
+                                    <div class="editor-hints">
+                                        <span class="hint-item"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Execute</span>
+                                        <span class="hint-item"><kbd>Ctrl</kbd>+<kbd>Space</kbd> Autocomplete</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sql-editor-wrapper">
+                                <textarea id="custom-sql-editor" class="custom-sql-textarea" placeholder="SELECT * FROM table_name WHERE condition;
+
+-- You can write multiple statements separated by semicolons
+-- Only SELECT queries will return results in the Results tab
+-- Non-SELECT queries (INSERT, UPDATE, DELETE, etc.) will show affected rows
+
+-- Examples:
+-- SELECT * FROM users WHERE status = 'active' LIMIT 10;
+-- INSERT INTO logs (message) VALUES ('Test');
+-- UPDATE users SET last_login = NOW() WHERE id = 1;
+"></textarea>
+                                <div class="editor-line-numbers" id="editor-line-numbers"></div>
+                            </div>
+                        </div>
+
+                        <!-- Query Templates -->
+                        <div class="builder-section collapsible">
+                            <div class="section-header collapsible-header">
+                                <span>QUICK TEMPLATES</span>
+                                <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            <div class="section-body collapsible-body">
+                                <div class="query-templates" id="query-templates">
+                                    <button class="template-btn" data-template="select-all">
+                                        <span class="template-name">SELECT All</span>
+                                        <span class="template-desc">SELECT * FROM table</span>
+                                    </button>
+                                    <button class="template-btn" data-template="select-where">
+                                        <span class="template-name">SELECT WHERE</span>
+                                        <span class="template-desc">With WHERE clause</span>
+                                    </button>
+                                    <button class="template-btn" data-template="select-join">
+                                        <span class="template-name">SELECT JOIN</span>
+                                        <span class="template-desc">Inner join tables</span>
+                                    </button>
+                                    <button class="template-btn" data-template="insert">
+                                        <span class="template-name">INSERT</span>
+                                        <span class="template-desc">Insert single row</span>
+                                    </button>
+                                    <button class="template-btn" data-template="update">
+                                        <span class="template-name">UPDATE</span>
+                                        <span class="template-desc">Update with WHERE</span>
+                                    </button>
+                                    <button class="template-btn" data-template="delete">
+                                        <span class="template-name">DELETE</span>
+                                        <span class="template-desc">Delete with WHERE</span>
+                                    </button>
+                                    <button class="template-btn" data-template="create-table">
+                                        <span class="template-name">CREATE TABLE</span>
+                                        <span class="template-desc">New table structure</span>
+                                    </button>
+                                    <button class="template-btn" data-template="show-tables">
+                                        <span class="template-name">SHOW TABLES</span>
+                                        <span class="template-desc">List all tables</span>
+                                    </button>
+                                    <button class="template-btn" data-template="describe">
+                                        <span class="template-name">DESCRIBE</span>
+                                        <span class="template-desc">Table structure</span>
+                                    </button>
+                                    <button class="template-btn" data-template="show-create">
+                                        <span class="template-name">SHOW CREATE</span>
+                                        <span class="template-desc">Table DDL</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Execution History -->
+                        <div class="builder-section collapsible collapsed">
+                            <div class="section-header collapsible-header">
+                                <span>RECENT QUERIES</span>
+                                <div class="section-actions">
+                                    <button class="btn-sm btn-text" id="btn-clear-recent">Clear</button>
+                                    <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="section-body collapsible-body">
+                                <div class="recent-queries" id="recent-custom-queries">
+                                    <div class="placeholder">No recent queries</div>
                                 </div>
                             </div>
                         </div>
