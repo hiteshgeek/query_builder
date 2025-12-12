@@ -63,6 +63,7 @@ function ensureTableExists(Database $db): void
             `title` VARCHAR(255) NOT NULL,
             `description` TEXT,
             `sql_query` TEXT NOT NULL,
+            `query_state` JSON,
             `query_type` ENUM('select', 'insert', 'update', 'delete', 'alter', 'custom') DEFAULT 'select',
             `group_name` VARCHAR(100),
             `tags` JSON,
@@ -77,6 +78,13 @@ function ensureTableExists(Database $db): void
             FULLTEXT `idx_search` (`title`, `description`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add query_state column if it doesn't exist (for existing installations)
+    try {
+        $pdo->exec("ALTER TABLE `qb_saved_queries` ADD COLUMN `query_state` JSON AFTER `sql_query`");
+    } catch (PDOException $e) {
+        // Column likely already exists, ignore
+    }
 
     // Create query_groups table for custom group metadata
     $pdo->exec("
@@ -147,7 +155,8 @@ function handleGet(Database $db): void
         }
 
         $query = $queries[0];
-        $query['tags'] = json_decode($query['tags'], true) ?? [];
+        $query['tags'] = $query['tags'] ? json_decode($query['tags'], true) : [];
+        $query['query_state'] = $query['query_state'] ? json_decode($query['query_state'], true) : null;
         json_success($query);
     }
 
@@ -202,7 +211,7 @@ function handleGet(Database $db): void
 
     // Decode tags JSON for each query
     foreach ($queries as &$query) {
-        $query['tags'] = json_decode($query['tags'], true) ?? [];
+        $query['tags'] = $query['tags'] ? json_decode($query['tags'], true) : [];
     }
 
     json_success(['queries' => $queries]);
@@ -231,6 +240,7 @@ function handlePost(Database $db): void
     $title = trim($input['title']);
     $description = trim($input['description'] ?? '');
     $sqlQuery = trim($input['sql_query']);
+    $queryState = $input['query_state'] ?? null;
     $queryType = $input['query_type'] ?? 'select';
     $groupName = !empty($input['group_name']) ? trim($input['group_name']) : null;
     $tags = $input['tags'] ?? [];
@@ -250,14 +260,15 @@ function handlePost(Database $db): void
 
     $pdo = $db->getConnection();
     $stmt = $pdo->prepare("
-        INSERT INTO qb_saved_queries (title, description, sql_query, query_type, group_name, tags, is_favorite)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO qb_saved_queries (title, description, sql_query, query_state, query_type, group_name, tags, is_favorite)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
         $title,
         $description,
         $sqlQuery,
+        $queryState ? json_encode($queryState) : null,
         $queryType,
         $groupName,
         json_encode($tags),
@@ -317,6 +328,11 @@ function handlePut(Database $db): void
     if (isset($input['sql_query'])) {
         $updates[] = 'sql_query = ?';
         $params[] = trim($input['sql_query']);
+    }
+
+    if (array_key_exists('query_state', $input)) {
+        $updates[] = 'query_state = ?';
+        $params[] = $input['query_state'] ? json_encode($input['query_state']) : null;
     }
 
     if (isset($input['query_type'])) {

@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "themes";
 @use "variables" as *;
 @use "mixins" as *;
@@ -433,10 +434,26 @@ body {
   padding: $spacing-sm $spacing-md;
   border-bottom: 1px solid $border-color;
   flex-shrink: 0;
+  gap: $spacing-sm;
 
   h3 {
     font-size: $font-size-sm;
     font-weight: 600;
+  }
+
+  .btn-clear-panel {
+    margin-left: auto;
+    color: $text-secondary;
+
+    &:hover {
+      color: $color-danger;
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: $spacing-xs;
   }
 }
 
@@ -708,15 +725,39 @@ body {
   .direction-toggle {
     @include button-reset;
     @include flex-center;
-    width: 16px;
-    height: 16px;
+    min-width: 36px;
+    height: 18px;
+    padding: 0 $spacing-xs;
     border-radius: 3px;
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     color: inherit;
-    transition: background $transition-fast;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all $transition-fast;
+    gap: 2px;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    &.asc {
+      background: rgba(34, 197, 94, 0.25);
+      color: #166534;
+
+      &:hover {
+        background: rgba(34, 197, 94, 0.35);
+      }
+    }
+
+    &.desc {
+      background: rgba(239, 68, 68, 0.25);
+      color: #991b1b;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.35);
+      }
     }
 
     svg {
@@ -2403,6 +2444,7 @@ textarea.insert-input {
 .history-list {
   flex: 1;
   overflow-y: auto;
+  padding: $spacing-sm;
   @include custom-scrollbar;
 
   .placeholder {
@@ -2410,6 +2452,14 @@ textarea.insert-input {
     text-align: center;
     color: $text-muted;
     font-size: $font-size-sm;
+  }
+
+  .saved-query-item {
+    margin-bottom: $spacing-sm;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 }
 
@@ -2478,43 +2528,12 @@ textarea.insert-input {
   margin-bottom: $spacing-xs;
 }
 
-.history-meta {
-  @include flex-start;
-  gap: $spacing-sm;
-  font-size: $font-size-xs;
-  color: $text-muted;
-}
-
-.history-item .history-actions {
-  @include flex-end;
-  gap: $spacing-xs;
-  margin-top: $spacing-xs;
-  opacity: 0;
-  transition: opacity $transition-fast;
-
-  button {
-    @include button-reset;
-    @include flex-center;
-    width: 24px;
-    height: 24px;
-    border-radius: $border-radius;
+// History sidebar uses saved-query-item styles - just add history-specific overrides
+.history-sidebar .saved-query-item {
+  .history-time {
+    font-size: $font-size-xs;
     color: $text-muted;
-    transition: all $transition-fast;
-
-    &:hover {
-      background: $bg-tertiary;
-      color: $text-primary;
-    }
-
-    &.btn-delete:hover {
-      background: rgba($color-danger, 0.1);
-      color: $color-danger;
-    }
-
-    &.btn-use:hover {
-      background: rgba($color-primary, 0.1);
-      color: $color-primary;
-    }
+    margin-left: auto;
   }
 }
 
@@ -3193,6 +3212,19 @@ textarea.insert-input {
 .query-actions {
   @include flex-end;
   gap: $spacing-xs;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  .btn-sm {
+    @include flex-center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius;
+    font-size: $font-size-xs;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
 
   .btn-load {
     background: $color-primary;
@@ -3205,17 +3237,29 @@ textarea.insert-input {
   }
 
   .btn-icon {
-    padding: 4px;
+    @include button-reset;
+    @include flex-center;
+    width: 24px;
+    height: 24px;
+    border-radius: $border-radius;
     color: $text-muted;
+    transition: all 0.15s ease;
 
     &:hover {
+      background: $bg-tertiary;
       color: $text-primary;
     }
   }
 
   .btn-delete:hover {
+    background: rgba($color-danger, 0.1);
     color: $color-danger;
   }
+}
+
+// Show actions on hover for both saved-query-item
+.saved-query-item:hover .query-actions {
+  opacity: 1;
 }
 
 // ===========================================
@@ -3320,6 +3364,122 @@ textarea.insert-input {
     margin-top: $spacing-xs;
     font-size: $font-size-xs;
     color: $text-muted;
+  }
+
+  // Chips select for groups and tags
+  .chips-select {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: $spacing-xs;
+    min-height: 38px;
+
+    .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+      margin-bottom: $spacing-xs;
+
+      &:empty {
+        display: none;
+      }
+
+      &:empty + .chips-input-wrapper {
+        margin-top: 0;
+      }
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      padding: 2px $spacing-sm;
+      background: $bg-tertiary;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-lg;
+      font-size: $font-size-xs;
+      color: $text-primary;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: $color-primary;
+        background: rgba(59, 130, 246, 0.1); // light blue tint
+      }
+
+      &.selected {
+        background: $color-primary;
+        border-color: $color-primary;
+        color: white;
+
+        .chip-remove {
+          color: rgba(255, 255, 255, 0.7);
+
+          &:hover {
+            color: white;
+          }
+        }
+      }
+
+      .chip-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        color: $text-muted;
+        transition: color 0.15s ease;
+
+        &:hover {
+          color: $color-danger;
+        }
+      }
+    }
+
+    .chips-input-wrapper {
+      display: flex;
+      gap: $spacing-xs;
+
+      input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $text-primary;
+        outline: none;
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+
+      .btn-add-chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: $color-primary;
+        border: none;
+        border-radius: $border-radius;
+        color: white;
+        cursor: pointer;
+        transition: background 0.15s ease;
+
+        &:hover {
+          background: $color-primary-dark;
+        }
+      }
+    }
+
+    // Single select mode (for groups)
+    &:not(.chips-multi) {
+      .chip.selected ~ .chip:not(.selected) {
+        opacity: 0.5;
+      }
+    }
   }
 
   .sql-preview-mini {

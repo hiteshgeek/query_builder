@@ -175,8 +175,15 @@ class QueryBuilder {
         // Run query
         document.getElementById('btn-run')?.addEventListener('click', () => this.runQuery());
 
-        // Clear
-        document.getElementById('btn-clear')?.addEventListener('click', () => this.clearAll());
+        // Clear All (toolbar button)
+        document.getElementById('btn-clear-all')?.addEventListener('click', () => this.clearAll());
+
+        // Panel-specific clear buttons
+        document.getElementById('btn-clear-select')?.addEventListener('click', () => this.clearSelect());
+        document.getElementById('btn-clear-insert')?.addEventListener('click', () => this.clearInsert());
+        document.getElementById('btn-clear-update')?.addEventListener('click', () => this.clearUpdate());
+        document.getElementById('btn-clear-delete')?.addEventListener('click', () => this.clearDelete());
+        document.getElementById('btn-clear-alter')?.addEventListener('click', () => this.clearAlter());
 
         // Add controls
         document.getElementById('btn-add-join')?.addEventListener('click', () => this.addJoinRow());
@@ -246,25 +253,25 @@ class QueryBuilder {
         // Drag and drop for INSERT/UPDATE/DELETE/ALTER table drop zones
         this.setupTableDropZone('insert-table-drop', (tableName) => {
             if (this.insertBuilder) {
-                this.insertBuilder.setTable(tableName);
+                this.insertBuilder.selectTable(tableName);
             }
         });
 
         this.setupTableDropZone('update-table-drop', (tableName) => {
             if (this.updateBuilder) {
-                this.updateBuilder.setTable(tableName);
+                this.updateBuilder.selectTable(tableName);
             }
         });
 
         this.setupTableDropZone('delete-table-drop', (tableName) => {
             if (this.deleteBuilder) {
-                this.deleteBuilder.setTable(tableName);
+                this.deleteBuilder.selectTable(tableName);
             }
         });
 
         this.setupTableDropZone('alter-table-drop', (tableName) => {
             if (this.alterBuilder) {
-                this.alterBuilder.setTable(tableName);
+                this.alterBuilder.selectTable(tableName);
             }
         });
 
@@ -365,31 +372,134 @@ class QueryBuilder {
 
     async doSaveQuery() {
         const sql = this.buildSQL();
-        const success = await savedQueries.handleSaveSubmit(sql, this.currentQueryType);
+        const queryState = this.getQueryState();
+        const success = await savedQueries.handleSaveSubmit(sql, this.currentQueryType, queryState);
         if (success) {
             this.hideSaveQueryModal();
         }
     }
 
+    /**
+     * Get current query builder state for saving
+     */
+    getQueryState() {
+        return {
+            queryType: this.currentQueryType,
+            selectedTables: this.selectedTables,
+            selectedColumns: this.selectedColumns,
+            joins: this.joins,
+            conditions: this.conditions,
+            orderBy: this.orderBy,
+            groupBy: this.groupBy,
+            limit: this.limit,
+            offset: this.offset
+        };
+    }
+
+    /**
+     * Load a saved query into the builder
+     */
     loadSavedQuery(query) {
-        // For now, we'll just load the SQL into the bottom panel
-        // A more complete implementation would parse the SQL and populate the visual builder
-        const sql = query.sql_query;
-
-        // Update SQL preview
-        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
-        if (bottomPreviewEl) {
-            bottomPreviewEl.textContent = sql;
-            hljs.highlightElement(bottomPreviewEl);
+        // If query has saved state, restore it
+        if (query.query_state) {
+            this.restoreQueryState(query.query_state);
+        } else {
+            // Parse SQL and populate query builder
+            this.loadFromSQL(query.sql_query, query.query_type);
         }
-
-        // Switch to SQL tab
-        this.switchBottomTab('sql-preview');
 
         // Close the saved queries sidebar
         this.toggleSavedQueries(false);
 
         toast.success(`Loaded: ${query.title}`);
+    }
+
+    /**
+     * Restore query builder state from saved state
+     */
+    restoreQueryState(state) {
+        // Switch to the correct query type
+        if (state.queryType) {
+            this.switchQueryType(state.queryType);
+        }
+
+        // Only restore SELECT query state for now
+        if (state.queryType === 'select') {
+            // Clear current state
+            this.selectedTables = [];
+            this.selectedColumns = {};
+            this.joins = [];
+            this.conditions = [];
+            this.orderBy = [];
+            this.groupBy = [];
+            this.limit = null;
+            this.offset = null;
+
+            // Restore tables
+            if (state.selectedTables && Array.isArray(state.selectedTables)) {
+                state.selectedTables.forEach(tableEntry => {
+                    this.selectedTables.push({
+                        name: tableEntry.name,
+                        alias: tableEntry.alias || '',
+                        colorIndex: tableEntry.colorIndex || this.nextColorIndex++
+                    });
+                });
+            }
+
+            // Restore selected columns
+            if (state.selectedColumns) {
+                this.selectedColumns = { ...state.selectedColumns };
+            }
+
+            // Restore joins
+            if (state.joins && Array.isArray(state.joins)) {
+                this.joins = [...state.joins];
+            }
+
+            // Restore conditions
+            if (state.conditions && Array.isArray(state.conditions)) {
+                this.conditions = [...state.conditions];
+            }
+
+            // Restore order by
+            if (state.orderBy && Array.isArray(state.orderBy)) {
+                this.orderBy = [...state.orderBy];
+            }
+
+            // Restore group by
+            if (state.groupBy && Array.isArray(state.groupBy)) {
+                this.groupBy = [...state.groupBy];
+            }
+
+            // Restore limit/offset
+            this.limit = state.limit || null;
+            this.offset = state.offset || null;
+
+            // Update UI
+            this.renderSelectedTables();
+            this.renderColumns();
+            this.renderJoins();
+            this.renderConditions();
+            this.renderOrderBy();
+            this.renderGroupBy();
+            this.updateLimitOffsetInputs();
+            this.updateSQLPreview();
+        }
+    }
+
+    /**
+     * Update limit/offset input values
+     */
+    updateLimitOffsetInputs() {
+        const limitInput = document.getElementById('limit-input');
+        const offsetInput = document.getElementById('offset-input');
+
+        if (limitInput) {
+            limitInput.value = this.limit || '';
+        }
+        if (offsetInput) {
+            offsetInput.value = this.offset || '';
+        }
     }
 
     setupTableDropZone(elementId, callback) {
@@ -424,25 +534,25 @@ class QueryBuilder {
                 break;
             case 'insert':
                 if (this.insertBuilder) {
-                    this.insertBuilder.setTable(tableName);
+                    this.insertBuilder.selectTable(tableName);
                     this.renderDropZoneTable(document.getElementById('insert-table-drop'), tableName);
                 }
                 break;
             case 'update':
                 if (this.updateBuilder) {
-                    this.updateBuilder.setTable(tableName);
+                    this.updateBuilder.selectTable(tableName);
                     this.renderDropZoneTable(document.getElementById('update-table-drop'), tableName);
                 }
                 break;
             case 'delete':
                 if (this.deleteBuilder) {
-                    this.deleteBuilder.setTable(tableName);
+                    this.deleteBuilder.selectTable(tableName);
                     this.renderDropZoneTable(document.getElementById('delete-table-drop'), tableName);
                 }
                 break;
             case 'alter':
                 if (this.alterBuilder) {
-                    this.alterBuilder.setTable(tableName);
+                    this.alterBuilder.selectTable(tableName);
                     this.renderDropZoneTable(document.getElementById('alter-table-drop'), tableName);
                 }
                 break;
@@ -1257,13 +1367,14 @@ class QueryBuilder {
                 const style = color
                     ? `background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text}`
                     : '';
+                const dirClass = order.direction.toLowerCase();
                 const arrowIcon = order.direction === 'ASC'
                     ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
                     : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
                 return `
                     <span class="orderby-tag" data-column="${order.column}" style="${style}">
                         ${order.column}
-                        <button class="direction-toggle" data-column="${order.column}" title="Toggle direction">${arrowIcon}</button>
+                        <button class="direction-toggle ${dirClass}" data-column="${order.column}" title="Toggle direction (${order.direction})">${arrowIcon} ${order.direction}</button>
                         <button class="tag-remove" data-column="${order.column}">&times;</button>
                     </span>
                 `;
@@ -2305,35 +2416,39 @@ class QueryBuilder {
         }
 
         container.innerHTML = history.map(entry => `
-            <div class="history-item" data-id="${entry.id}">
-                <div class="history-item-header">
-                    <span class="history-type ${entry.type.toLowerCase()}">${entry.type}</span>
+            <div class="saved-query-item" data-id="${entry.id}">
+                <div class="query-item-header">
+                    <span class="query-type-icon">${this.queryHistory.getTypeIcon(entry.type)}</span>
+                    <span class="query-title">${entry.type}</span>
                     <span class="history-time">${this.queryHistory.formatTimestamp(entry.timestamp)}</span>
                 </div>
-                <div class="history-sql">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
-                <div class="history-meta">
-                    ${entry.rowCount !== null ? `<span>${entry.rowCount} rows</span>` : ''}
-                    ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
-                </div>
-                <div class="history-actions">
-                    <button class="btn-use" data-id="${entry.id}" title="Use this query">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="5 3 19 12 5 21 5 3"/>
-                        </svg>
-                    </button>
-                    <button class="btn-delete" data-id="${entry.id}" title="Remove from history">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
+                <div class="query-description" style="font-family: var(--font-mono); font-size: 11px;">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
+                <div class="query-item-footer">
+                    <span class="query-meta">
+                        ${entry.rowCount !== null ? `<span>${entry.rowCount} rows</span>` : ''}
+                        ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
+                    </span>
+                    <div class="query-actions">
+                        <button class="btn-sm btn-load" data-id="${entry.id}" title="Load Query">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Load
+                        </button>
+                        <button class="btn-icon btn-delete" data-id="${entry.id}" title="Remove from history">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');
 
         // Bind events
-        container.querySelectorAll('.btn-use').forEach(btn => {
-            btn.addEventListener('click', () => {
+        container.querySelectorAll('.btn-load').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const id = parseInt(btn.dataset.id);
                 this.useHistoryQuery(id);
             });
@@ -2364,29 +2479,334 @@ class QueryBuilder {
         const entry = history.find(h => h.id === id);
         if (!entry) return;
 
-        // Switch to SELECT tab and SQL mode
-        this.switchQueryType('select');
-
-        // Set the SQL in the editor
-        const editorEl = document.getElementById('sql-editor');
-        const previewEl = document.querySelector('#sql-preview code');
-
-        if (editorEl) {
-            editorEl.value = entry.sql;
-        }
-        if (previewEl) {
-            previewEl.textContent = entry.sql;
-            hljs.highlightElement(previewEl);
-        }
-
-        // Switch to SQL tab
-        const sqlTab = document.querySelector('.panel-tabs .tab[data-tab="sql"]');
-        if (sqlTab) {
-            sqlTab.click();
-        }
+        // Parse SQL and populate query builder
+        this.loadFromSQL(entry.sql, entry.type.toLowerCase());
 
         // Close history sidebar
         document.getElementById('history-sidebar')?.classList.remove('open');
+
+        toast.success('Query loaded');
+    }
+
+    /**
+     * Parse SQL and populate the query builder
+     */
+    loadFromSQL(sql, queryType = 'select') {
+        // Detect query type from SQL if not provided
+        const sqlUpper = sql.trim().toUpperCase();
+        if (sqlUpper.startsWith('SELECT')) queryType = 'select';
+        else if (sqlUpper.startsWith('INSERT')) queryType = 'insert';
+        else if (sqlUpper.startsWith('UPDATE')) queryType = 'update';
+        else if (sqlUpper.startsWith('DELETE')) queryType = 'delete';
+        else if (sqlUpper.startsWith('ALTER')) queryType = 'alter';
+
+        // Switch to correct query type
+        this.switchQueryType(queryType);
+
+        // Update SQL preview
+        const bottomPreviewEl = document.querySelector('#sql-preview-bottom code');
+        if (bottomPreviewEl) {
+            bottomPreviewEl.textContent = sql;
+            hljs.highlightElement(bottomPreviewEl);
+        }
+
+        // Parse and populate based on query type
+        if (queryType === 'select') {
+            this.parseAndLoadSelectQuery(sql);
+        } else {
+            // For other types, just show the SQL in their respective editors
+            const editorEl = document.getElementById('sql-editor');
+            if (editorEl) {
+                editorEl.value = sql;
+            }
+        }
+    }
+
+    /**
+     * Parse SELECT query and populate the builder
+     */
+    parseAndLoadSelectQuery(sql) {
+        // Clear current state
+        this.selectedTables = [];
+        this.selectedColumns = {};
+        this.joins = [];
+        this.conditions = [];
+        this.orderBy = [];
+        this.groupBy = [];
+        this.limit = null;
+        this.offset = null;
+
+        // Helper to find schema table (case-insensitive)
+        const findSchemaTable = (name) => {
+            if (!this.schema) return null;
+            return Object.keys(this.schema).find(t => t.toLowerCase() === name.toLowerCase());
+        };
+
+        try {
+            // Extract table from FROM clause (handles: FROM table, FROM table alias, FROM table AS alias)
+            const fromMatch = sql.match(/FROM\s+`?(\w+)`?(?:\s+(?:AS\s+)?`?(\w+)`?)?/i);
+            if (fromMatch) {
+                const tableName = fromMatch[1];
+                // Check if second match is actually a keyword (JOIN, WHERE, etc.)
+                const keywords = ['join', 'left', 'right', 'inner', 'outer', 'cross', 'where', 'group', 'order', 'limit', 'having'];
+                let alias = fromMatch[2] || '';
+                if (keywords.includes(alias.toLowerCase())) {
+                    alias = '';
+                }
+
+                const schemaTable = findSchemaTable(tableName);
+                const actualTableName = schemaTable || tableName;
+
+                this.selectedTables.push({
+                    name: actualTableName,
+                    alias: alias,
+                    colorIndex: this.nextColorIndex++
+                });
+
+                if (!schemaTable) {
+                    console.warn(`Table "${tableName}" not found in schema, using as-is`);
+                }
+            }
+
+            // Extract JOINs first (to know all tables before parsing columns)
+            const joinRegex = /(LEFT|RIGHT|INNER|OUTER|CROSS)?\s*JOIN\s+`?(\w+)`?(?:\s+(?:AS\s+)?`?(\w+)`?)?\s+ON\s+(.+?)(?=(?:LEFT|RIGHT|INNER|OUTER|CROSS)?\s*JOIN|WHERE|GROUP|ORDER|LIMIT|$)/gi;
+            let joinMatch;
+            while ((joinMatch = joinRegex.exec(sql)) !== null) {
+                const joinType = (joinMatch[1] || 'INNER').toUpperCase();
+                const joinTable = joinMatch[2];
+                const joinAlias = joinMatch[3] || '';
+                const onClause = joinMatch[4].trim();
+
+                const schemaTable = findSchemaTable(joinTable);
+                const actualJoinTable = schemaTable || joinTable;
+
+                this.selectedTables.push({
+                    name: actualJoinTable,
+                    alias: joinAlias,
+                    colorIndex: this.nextColorIndex++
+                });
+
+                // Parse ON clause
+                const onMatch = onClause.match(/`?(\w+)`?\.`?(\w+)`?\s*=\s*`?(\w+)`?\.`?(\w+)`?/);
+                if (onMatch) {
+                    this.joins.push({
+                        leftTable: onMatch[1],
+                        leftColumn: onMatch[2],
+                        rightTable: onMatch[3],
+                        rightColumn: onMatch[4],
+                        type: joinType
+                    });
+                }
+            }
+
+            // Now parse columns from SELECT clause
+            // Build a map of alias/name -> actual table name
+            const tableMap = {};
+            this.selectedTables.forEach(t => {
+                const key = t.alias || t.name;
+                tableMap[key.toLowerCase()] = t.name;
+                tableMap[t.name.toLowerCase()] = t.name;
+            });
+
+            const selectMatch = sql.match(/SELECT\s+([\s\S]+?)\s+FROM/i);
+            if (selectMatch) {
+                const columnsStr = selectMatch[1].trim();
+
+                // Handle SELECT * or SELECT DISTINCT * - select all columns from all tables
+                const isSelectAll = /^(DISTINCT\s+)?\*$/i.test(columnsStr);
+                if (isSelectAll) {
+                    this.selectedTables.forEach(tableEntry => {
+                        const tableKey = tableEntry.alias || tableEntry.name;
+                        const schemaTable = findSchemaTable(tableEntry.name);
+                        if (schemaTable && this.schema[schemaTable]) {
+                            this.selectedColumns[tableKey] = this.schema[schemaTable].columns.map(c => c.name);
+                        }
+                    });
+                } else {
+                    // Parse individual columns
+                    // Split by comma, but be careful with functions like COUNT(*)
+                    const columnParts = [];
+                    let depth = 0;
+                    let current = '';
+                    for (const char of columnsStr) {
+                        if (char === '(') depth++;
+                        else if (char === ')') depth--;
+                        else if (char === ',' && depth === 0) {
+                            columnParts.push(current.trim());
+                            current = '';
+                            continue;
+                        }
+                        current += char;
+                    }
+                    if (current.trim()) columnParts.push(current.trim());
+
+                    columnParts.forEach(colExpr => {
+                        // Remove backticks and handle aliases (AS keyword or space)
+                        let col = colExpr.replace(/`/g, '').trim();
+
+                        // Remove column alias (e.g., "col AS alias" or "col alias")
+                        const asMatch = col.match(/^(.+?)\s+(?:AS\s+)?(\w+)$/i);
+                        if (asMatch && !col.includes('(')) {
+                            col = asMatch[1].trim();
+                        }
+
+                        // Handle table.* (select all from specific table)
+                        const tableStarMatch = col.match(/^(\w+)\.\*$/);
+                        if (tableStarMatch) {
+                            const tableRef = tableStarMatch[1];
+                            const actualTable = tableMap[tableRef.toLowerCase()];
+                            if (actualTable) {
+                                const tableEntry = this.selectedTables.find(t =>
+                                    t.name.toLowerCase() === actualTable.toLowerCase() ||
+                                    (t.alias && t.alias.toLowerCase() === tableRef.toLowerCase())
+                                );
+                                const tableKey = tableEntry ? (tableEntry.alias || tableEntry.name) : tableRef;
+                                const schemaTable = findSchemaTable(actualTable);
+                                if (schemaTable && this.schema[schemaTable]) {
+                                    this.selectedColumns[tableKey] = this.schema[schemaTable].columns.map(c => c.name);
+                                }
+                            }
+                            return;
+                        }
+
+                        // Handle table.column format
+                        const tableColMatch = col.match(/^(\w+)\.(\w+)$/);
+                        if (tableColMatch) {
+                            const tableRef = tableColMatch[1];
+                            const colName = tableColMatch[2];
+                            const actualTable = tableMap[tableRef.toLowerCase()];
+
+                            if (actualTable) {
+                                const tableEntry = this.selectedTables.find(t =>
+                                    t.name.toLowerCase() === actualTable.toLowerCase() ||
+                                    (t.alias && t.alias.toLowerCase() === tableRef.toLowerCase())
+                                );
+                                const tableKey = tableEntry ? (tableEntry.alias || tableEntry.name) : tableRef;
+
+                                if (!this.selectedColumns[tableKey]) {
+                                    this.selectedColumns[tableKey] = [];
+                                }
+
+                                // Find actual column name from schema (case-insensitive)
+                                const schemaTable = findSchemaTable(actualTable);
+                                if (schemaTable && this.schema[schemaTable]) {
+                                    const schemaCol = this.schema[schemaTable].columns.find(
+                                        c => c.name.toLowerCase() === colName.toLowerCase()
+                                    );
+                                    if (schemaCol && !this.selectedColumns[tableKey].includes(schemaCol.name)) {
+                                        this.selectedColumns[tableKey].push(schemaCol.name);
+                                    }
+                                } else if (!this.selectedColumns[tableKey].includes(colName)) {
+                                    this.selectedColumns[tableKey].push(colName);
+                                }
+                            }
+                        } else if (!col.includes('(')) {
+                            // Simple column name without table prefix - assign to first table
+                            const firstTable = this.selectedTables[0];
+                            if (firstTable) {
+                                const tableKey = firstTable.alias || firstTable.name;
+                                if (!this.selectedColumns[tableKey]) {
+                                    this.selectedColumns[tableKey] = [];
+                                }
+
+                                const schemaTable = findSchemaTable(firstTable.name);
+                                if (schemaTable && this.schema[schemaTable]) {
+                                    const schemaCol = this.schema[schemaTable].columns.find(
+                                        c => c.name.toLowerCase() === col.toLowerCase()
+                                    );
+                                    if (schemaCol && !this.selectedColumns[tableKey].includes(schemaCol.name)) {
+                                        this.selectedColumns[tableKey].push(schemaCol.name);
+                                    }
+                                } else if (!this.selectedColumns[tableKey].includes(col)) {
+                                    this.selectedColumns[tableKey].push(col);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // If no columns were selected for any table, select all columns
+            this.selectedTables.forEach(tableEntry => {
+                const tableKey = tableEntry.alias || tableEntry.name;
+                if (!this.selectedColumns[tableKey] || this.selectedColumns[tableKey].length === 0) {
+                    const schemaTable = findSchemaTable(tableEntry.name);
+                    if (schemaTable && this.schema[schemaTable]) {
+                        this.selectedColumns[tableKey] = this.schema[schemaTable].columns.map(c => c.name);
+                    }
+                }
+            });
+
+            // Extract WHERE conditions
+            const whereMatch = sql.match(/WHERE\s+([\s\S]+?)(?=GROUP|ORDER|LIMIT|$)/i);
+            if (whereMatch) {
+                const whereClause = whereMatch[1].trim();
+                // Simple condition parsing - split by AND
+                const conditions = whereClause.split(/\s+AND\s+/i);
+                conditions.forEach(cond => {
+                    const condMatch = cond.match(/`?(\w+)`?(?:\.`?(\w+)`?)?\s*(=|!=|<>|>|<|>=|<=|LIKE|NOT LIKE|IN|NOT IN|IS NULL|IS NOT NULL)\s*(.+)?/i);
+                    if (condMatch) {
+                        const column = condMatch[2] || condMatch[1];
+                        const operator = condMatch[3].toUpperCase();
+                        let value = condMatch[4] || '';
+                        value = value.replace(/^['"]|['"]$/g, '').trim();
+
+                        this.conditions.push({
+                            column: column,
+                            operator: operator,
+                            value: value,
+                            connector: 'AND'
+                        });
+                    }
+                });
+            }
+
+            // Extract ORDER BY
+            const orderMatch = sql.match(/ORDER\s+BY\s+([\s\S]+?)(?=LIMIT|$)/i);
+            if (orderMatch) {
+                const orderClause = orderMatch[1].trim();
+                const orders = orderClause.split(',');
+                orders.forEach(order => {
+                    const orderParts = order.trim().split(/\s+/);
+                    const column = orderParts[0].replace(/`/g, '').split('.').pop();
+                    const direction = (orderParts[1] || 'ASC').toUpperCase();
+                    this.orderBy.push({ column, direction });
+                });
+            }
+
+            // Extract GROUP BY
+            const groupMatch = sql.match(/GROUP\s+BY\s+([\s\S]+?)(?=HAVING|ORDER|LIMIT|$)/i);
+            if (groupMatch) {
+                const groupClause = groupMatch[1].trim();
+                const groups = groupClause.split(',');
+                groups.forEach(group => {
+                    const column = group.trim().replace(/`/g, '').split('.').pop();
+                    this.groupBy.push(column);
+                });
+            }
+
+            // Extract LIMIT and OFFSET
+            const limitMatch = sql.match(/LIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?/i);
+            if (limitMatch) {
+                this.limit = parseInt(limitMatch[1]);
+                if (limitMatch[2]) {
+                    this.offset = parseInt(limitMatch[2]);
+                }
+            }
+
+        } catch (e) {
+            console.warn('Failed to parse SQL:', e);
+        }
+
+        // Update UI
+        this.renderSelectedTables();
+        this.renderColumns();
+        this.renderJoins();
+        this.renderConditions();
+        this.renderOrderBy();
+        this.renderGroupBy();
+        this.updateLimitOffsetInputs();
+        this.updateSQLPreview();
     }
 
     searchHistory(query) {
@@ -2399,22 +2819,52 @@ class QueryBuilder {
             return;
         }
 
-        // Reuse renderHistory logic with filtered results
+        // Reuse same design as renderHistory
         container.innerHTML = results.map(entry => `
-            <div class="history-item" data-id="${entry.id}">
-                <div class="history-item-header">
-                    <span class="history-type ${entry.type.toLowerCase()}">${entry.type}</span>
+            <div class="saved-query-item" data-id="${entry.id}">
+                <div class="query-item-header">
+                    <span class="query-type-icon">${this.queryHistory.getTypeIcon(entry.type)}</span>
+                    <span class="query-title">${entry.type}</span>
                     <span class="history-time">${this.queryHistory.formatTimestamp(entry.timestamp)}</span>
                 </div>
-                <div class="history-sql">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
+                <div class="query-description" style="font-family: var(--font-mono); font-size: 11px;">${this.escapeHtml(this.truncateSQL(entry.sql, 100))}</div>
+                <div class="query-item-footer">
+                    <span class="query-meta">
+                        ${entry.rowCount !== null ? `<span>${entry.rowCount} rows</span>` : ''}
+                        ${entry.executionTime !== null ? `<span>${entry.executionTime}ms</span>` : ''}
+                    </span>
+                    <div class="query-actions">
+                        <button class="btn-sm btn-load" data-id="${entry.id}" title="Load Query">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Load
+                        </button>
+                        <button class="btn-icon btn-delete" data-id="${entry.id}" title="Remove from history">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         `).join('');
 
-        // Bind click events
-        container.querySelectorAll('.history-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const id = parseInt(item.dataset.id);
+        // Bind events
+        container.querySelectorAll('.btn-load').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
                 this.useHistoryQuery(id);
+            });
+        });
+
+        container.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                this.queryHistory.removeEntry(id);
+                this.searchHistory(query);
             });
         });
     }
@@ -2430,49 +2880,74 @@ class QueryBuilder {
         return div.innerHTML;
     }
 
+    clearDropZone(dropZoneId) {
+        const dropZone = document.getElementById(dropZoneId);
+        if (dropZone) {
+            dropZone.innerHTML = '<div class="placeholder">Drag a table here or double-click from sidebar</div>';
+            dropZone.classList.remove('has-table');
+        }
+    }
+
+    clearSelect() {
+        this.selectedTables = [];
+        this.selectedColumns = {};
+        this.joins = [];
+        this.conditions = [];
+        this.orderBy = [];
+        this.groupBy = [];
+        this.limit = null;
+        this.offset = null;
+
+        document.getElementById('limit-input').value = '';
+        document.getElementById('offset-input').value = '';
+
+        this.renderSelectedTables();
+        this.renderColumns();
+        this.renderJoins();
+        this.renderConditions();
+        this.renderOrderBy();
+        this.renderGroupBy();
+        this.updateSQLPreview();
+    }
+
+    clearInsert() {
+        if (this.insertBuilder) {
+            this.insertBuilder.clear();
+            this.clearDropZone('insert-table-drop');
+        }
+    }
+
+    clearUpdate() {
+        if (this.updateBuilder) {
+            this.updateBuilder.clear();
+            this.clearDropZone('update-table-drop');
+        }
+    }
+
+    clearDelete() {
+        if (this.deleteBuilder) {
+            this.deleteBuilder.clear();
+            this.clearDropZone('delete-table-drop');
+        }
+    }
+
+    clearAlter() {
+        if (this.alterBuilder) {
+            this.alterBuilder.clear();
+            this.clearDropZone('alter-table-drop');
+        }
+    }
+
     clearAll() {
-        // Clear based on current query type
-        if (this.currentQueryType === 'insert') {
-            if (this.insertBuilder) {
-                this.insertBuilder.clear();
-            }
-        } else if (this.currentQueryType === 'update') {
-            if (this.updateBuilder) {
-                this.updateBuilder.clear();
-            }
-        } else if (this.currentQueryType === 'delete') {
-            if (this.deleteBuilder) {
-                this.deleteBuilder.clear();
-            }
-        } else if (this.currentQueryType === 'alter') {
-            if (this.alterBuilder) {
-                this.alterBuilder.clear();
-            }
-        } else if (this.currentQueryType === 'users') {
-            if (this.userManager) {
-                this.userManager.clear();
-            }
-        } else {
-            // Clear SELECT builder state
-            this.selectedTables = [];
-            this.selectedColumns = {};
-            this.joins = [];
-            this.conditions = [];
-            this.orderBy = [];
-            this.groupBy = [];
-            this.limit = null;
-            this.offset = null;
+        // Clear all query builders
+        this.clearSelect();
+        this.clearInsert();
+        this.clearUpdate();
+        this.clearDelete();
+        this.clearAlter();
 
-            document.getElementById('limit-input').value = '';
-            document.getElementById('offset-input').value = '';
-
-            this.renderSelectedTables();
-            this.renderColumns();
-            this.renderJoins();
-            this.renderConditions();
-            this.renderOrderBy();
-            this.renderGroupBy();
-            this.updateSQLPreview();
+        if (this.userManager) {
+            this.userManager.clear();
         }
 
         // Clear results

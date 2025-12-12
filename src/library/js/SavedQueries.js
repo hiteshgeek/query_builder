@@ -514,9 +514,15 @@ class SavedQueries {
         // Populate form
         document.getElementById('save-query-title').value = existingQuery?.title || '';
         document.getElementById('save-query-description').value = existingQuery?.description || '';
-        document.getElementById('save-query-group').value = existingQuery?.group_name || '';
-        document.getElementById('save-query-tags').value = existingQuery?.tags?.join(', ') || '';
         document.getElementById('save-query-favorite').checked = existingQuery?.is_favorite || false;
+
+        // Set selected group and tags for chips
+        this.selectedGroup = existingQuery?.group_name || '';
+        this.selectedTags = existingQuery?.tags || [];
+
+        // Update hidden fields
+        document.getElementById('save-query-group').value = this.selectedGroup;
+        document.getElementById('save-query-tags').value = this.selectedTags.join(',');
 
         // Set query ID for editing
         modal.dataset.queryId = existingQuery?.id || '';
@@ -524,8 +530,8 @@ class SavedQueries {
         // Update modal title
         modal.querySelector('.modal-title').textContent = isEdit ? 'Edit Saved Query' : 'Save Query';
 
-        // Populate groups datalist
-        this.populateGroupsDatalist();
+        // Populate chips
+        this.populateChips();
 
         // Show modal
         modal.classList.add('active');
@@ -540,32 +546,165 @@ class SavedQueries {
             modal.classList.remove('active');
             modal.dataset.queryId = '';
         }
+        // Reset selections
+        this.selectedGroup = '';
+        this.selectedTags = [];
     }
 
     /**
-     * Populate groups datalist for autocomplete
+     * Populate groups and tags chips
+     */
+    async populateChips() {
+        await Promise.all([this.fetchGroups(), this.fetchTags()]);
+        this.renderGroupChips();
+        this.renderTagChips();
+        this.bindChipsEvents();
+    }
+
+    /**
+     * Render group chips
+     */
+    renderGroupChips() {
+        const container = document.getElementById('groups-chips-container');
+        if (!container) return;
+
+        const groupNames = this.groups.map(g => g.name);
+
+        container.innerHTML = groupNames.map(name => `
+            <span class="chip ${this.selectedGroup === name ? 'selected' : ''}" data-value="${this.escapeHtml(name)}">
+                ${this.escapeHtml(name)}
+            </span>
+        `).join('');
+    }
+
+    /**
+     * Render tag chips
+     */
+    renderTagChips() {
+        const container = document.getElementById('tags-chips-container');
+        if (!container) return;
+
+        // Combine existing tags with selected tags (for new tags not in the list yet)
+        const allTags = [...new Set([...this.tags, ...this.selectedTags])];
+
+        container.innerHTML = allTags.map(tag => `
+            <span class="chip ${this.selectedTags.includes(tag) ? 'selected' : ''}" data-value="${this.escapeHtml(tag)}">
+                ${this.escapeHtml(tag)}
+            </span>
+        `).join('');
+    }
+
+    /**
+     * Bind chips events
+     */
+    bindChipsEvents() {
+        // Group chips - single select
+        const groupsContainer = document.getElementById('groups-chips-container');
+        groupsContainer?.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const value = chip.dataset.value;
+                if (this.selectedGroup === value) {
+                    this.selectedGroup = '';
+                } else {
+                    this.selectedGroup = value;
+                }
+                document.getElementById('save-query-group').value = this.selectedGroup;
+                this.renderGroupChips();
+                this.bindChipsEvents();
+            });
+        });
+
+        // Add new group
+        const addGroupBtn = document.getElementById('btn-add-group');
+        const groupInput = document.getElementById('save-query-group-input');
+
+        const addGroup = () => {
+            const value = groupInput?.value.trim();
+            if (value && !this.groups.find(g => g.name === value)) {
+                this.groups.push({ name: value, query_count: 0 });
+            }
+            if (value) {
+                this.selectedGroup = value;
+                document.getElementById('save-query-group').value = this.selectedGroup;
+                groupInput.value = '';
+                this.renderGroupChips();
+                this.bindChipsEvents();
+            }
+        };
+
+        addGroupBtn?.removeEventListener('click', addGroup);
+        addGroupBtn?.addEventListener('click', addGroup);
+
+        groupInput?.removeEventListener('keydown', this._groupKeyHandler);
+        this._groupKeyHandler = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addGroup();
+            }
+        };
+        groupInput?.addEventListener('keydown', this._groupKeyHandler);
+
+        // Tag chips - multi select
+        const tagsContainer = document.getElementById('tags-chips-container');
+        tagsContainer?.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const value = chip.dataset.value;
+                const idx = this.selectedTags.indexOf(value);
+                if (idx > -1) {
+                    this.selectedTags.splice(idx, 1);
+                } else {
+                    this.selectedTags.push(value);
+                }
+                document.getElementById('save-query-tags').value = this.selectedTags.join(',');
+                this.renderTagChips();
+                this.bindChipsEvents();
+            });
+        });
+
+        // Add new tag
+        const addTagBtn = document.getElementById('btn-add-tag');
+        const tagInput = document.getElementById('save-query-tags-input');
+
+        const addTag = () => {
+            const value = tagInput?.value.trim();
+            if (value && !this.tags.includes(value)) {
+                this.tags.push(value);
+            }
+            if (value && !this.selectedTags.includes(value)) {
+                this.selectedTags.push(value);
+                document.getElementById('save-query-tags').value = this.selectedTags.join(',');
+                tagInput.value = '';
+                this.renderTagChips();
+                this.bindChipsEvents();
+            } else if (value) {
+                tagInput.value = '';
+            }
+        };
+
+        addTagBtn?.removeEventListener('click', addTag);
+        addTagBtn?.addEventListener('click', addTag);
+
+        tagInput?.removeEventListener('keydown', this._tagKeyHandler);
+        this._tagKeyHandler = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTag();
+            }
+        };
+        tagInput?.addEventListener('keydown', this._tagKeyHandler);
+    }
+
+    /**
+     * Populate groups datalist for autocomplete (legacy - kept for compatibility)
      */
     async populateGroupsDatalist() {
-        await this.fetchGroups();
-        const datalist = document.getElementById('groups-datalist');
-        if (datalist) {
-            datalist.innerHTML = this.groups.map(g =>
-                `<option value="${this.escapeHtml(g.name)}">`
-            ).join('');
-        }
-
-        // Also populate tags datalist
-        await this.fetchTags();
-        const tagsHint = document.getElementById('tags-hint');
-        if (tagsHint && this.tags.length > 0) {
-            tagsHint.textContent = `Existing tags: ${this.tags.slice(0, 10).join(', ')}${this.tags.length > 10 ? '...' : ''}`;
-        }
+        await this.populateChips();
     }
 
     /**
      * Handle save form submission
      */
-    async handleSaveSubmit(sql, queryType = 'select') {
+    async handleSaveSubmit(sql, queryType = 'select', queryState = null) {
         const modal = document.getElementById('save-query-modal');
         if (!modal) return false;
 
@@ -589,6 +728,7 @@ class SavedQueries {
             title,
             description,
             sql_query: sql,
+            query_state: queryState,
             query_type: queryType,
             group_name: groupName || null,
             tags,

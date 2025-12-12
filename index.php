@@ -13,6 +13,7 @@ $basePath = get_base_path();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Query Builder</title>
+    <link rel="icon" type="image/svg+xml" href="<?= $basePath ?>/favicon.svg">
     <link rel="stylesheet" href="<?= asset('query-builder.css') ?>">
     <link rel="stylesheet" href="<?= asset('main.css') ?>">
     <!-- Prevent FOUC by setting theme before CSS loads -->
@@ -73,11 +74,11 @@ $basePath = get_base_path();
                         </svg>
                     </button>
                 </div>
-                <button class="btn btn-secondary" id="btn-clear">
+                <button class="btn btn-secondary" id="btn-clear-all" title="Clear all queries and results">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
-                    Clear
+                    Clear All
                 </button>
                 <button class="btn btn-secondary" id="btn-save-query">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -217,6 +218,12 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel active" data-panel="select">
                     <div class="panel-header">
                         <h3>SELECT Query</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-select" title="Clear SELECT query">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
                     </div>
 
                     <!-- Visual Builder -->
@@ -310,6 +317,12 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="insert">
                     <div class="panel-header">
                         <h3>INSERT Query</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-insert" title="Clear INSERT query">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
                         <div class="panel-actions">
                             <button class="btn-sm" id="btn-import-csv">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -358,6 +371,12 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="update">
                     <div class="panel-header">
                         <h3>UPDATE Query</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-update" title="Clear UPDATE query">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
                         <button class="btn-sm" id="btn-preview-update">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -403,6 +422,12 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="delete">
                     <div class="panel-header">
                         <h3>DELETE Query</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-delete" title="Clear DELETE query">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
                         <button class="btn-sm" id="btn-preview-delete">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -438,6 +463,12 @@ $basePath = get_base_path();
                 <div class="builder-panel query-panel" data-panel="alter">
                     <div class="panel-header">
                         <h3>ALTER Table</h3>
+                        <button class="btn-sm btn-clear-panel" id="btn-clear-alter" title="Clear ALTER query">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
                     </div>
                     <div class="panel-content alter-panel-content">
                         <!-- Table Selection (Drag & Drop) -->
@@ -778,28 +809,46 @@ $basePath = get_base_path();
                     <label for="save-query-description">Description</label>
                     <textarea id="save-query-description" placeholder="Brief description of what this query does..." rows="2"></textarea>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="save-query-group">Group</label>
-                        <input type="text" id="save-query-group" list="groups-datalist" placeholder="e.g., Reports">
-                        <datalist id="groups-datalist"></datalist>
-                    </div>
-                    <div class="form-group form-group-favorite">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="save-query-favorite">
-                            <span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                <div class="form-group">
+                    <label>Group</label>
+                    <div class="chips-select" id="save-query-group-chips">
+                        <div class="chips-container" id="groups-chips-container"></div>
+                        <div class="chips-input-wrapper">
+                            <input type="text" id="save-query-group-input" placeholder="Type to add new group...">
+                            <button type="button" class="btn-add-chip" id="btn-add-group" title="Add Group">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
-                                Favorite
-                            </span>
-                        </label>
+                            </button>
+                        </div>
                     </div>
+                    <input type="hidden" id="save-query-group" value="">
                 </div>
                 <div class="form-group">
-                    <label for="save-query-tags">Tags</label>
-                    <input type="text" id="save-query-tags" placeholder="e.g., users, analytics, daily (comma separated)">
-                    <span class="form-hint" id="tags-hint">Separate multiple tags with commas</span>
+                    <label>Tags</label>
+                    <div class="chips-select chips-multi" id="save-query-tags-chips">
+                        <div class="chips-container" id="tags-chips-container"></div>
+                        <div class="chips-input-wrapper">
+                            <input type="text" id="save-query-tags-input" placeholder="Type to add new tag...">
+                            <button type="button" class="btn-add-chip" id="btn-add-tag" title="Add Tag">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="save-query-tags" value="">
+                </div>
+                <div class="form-group form-group-favorite">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="save-query-favorite">
+                        <span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            Favorite
+                        </span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label>SQL Preview</label>
