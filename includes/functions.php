@@ -13,19 +13,19 @@
  */
 function get_base_path()
 {
-    // Get the directory of the current script relative to document root
-    $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-    $parts = explode('/', trim($scriptDir, '/'));
+      // Get the directory of the current script relative to document root
+      $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+      $parts = explode('/', trim($scriptDir, '/'));
 
-    // Known subdirectory names that are NOT the root
-    $subDirs = ['usage', 'file-uploader', 'file-carousel', 'media-capture', 'utils', 'projects', 'api', 'pages', 'graph', 'counter', 'list', 'table', 'links', 'admin'];
+      // Known subdirectory names that are NOT the root
+      $subDirs = ['usage', 'file-uploader', 'file-carousel', 'media-capture', 'utils', 'projects', 'api', 'pages', 'graph', 'counter', 'list', 'table', 'links', 'admin'];
 
-    // Walk backwards removing subdirectories until we find the root
-    while (!empty($parts) && in_array(end($parts), $subDirs)) {
-        array_pop($parts);
-    }
+      // Walk backwards removing subdirectories until we find the root
+      while (!empty($parts) && in_array(end($parts), $subDirs)) {
+            array_pop($parts);
+      }
 
-    return '/' . implode('/', $parts);
+      return '/' . implode('/', $parts);
 }
 
 function asset_manifest($type = 'css')
@@ -79,6 +79,6 @@ function asset($logical, $variant = null)
  */
 function favicon()
 {
-    $basePath = get_base_path();
-    echo '<link rel="icon" type="image/svg+xml" href="' . $basePath . '/assets/images/favicon.svg">';
+      $basePath = get_base_path();
+      echo '<link rel="icon" type="image/svg+xml" href="' . $basePath . '/assets/images/favicon.svg">';
 }

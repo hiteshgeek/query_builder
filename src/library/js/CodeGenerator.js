@@ -572,9 +572,9 @@ class CodeGenerator {
         code += `     * Default searchable columns for text search\n`;
         code += `     */\n`;
         if (isPhp8) {
-            code += `    private static array $defaultSearchColumns = array(${defaultSearchCols}\n    );\n\n`;
+            code += `    private static array $defaultSearchColumns = [${defaultSearchCols}\n    ];\n\n`;
         } else {
-            code += `    private static $defaultSearchColumns = array(${defaultSearchCols}\n    );\n\n`;
+            code += `    private static $defaultSearchColumns = [${defaultSearchCols}\n    ];\n\n`;
         }
 
         code += `    /**\n`;
@@ -609,7 +609,7 @@ class CodeGenerator {
                 code += `    public static function findById($id)\n`;
             }
             code += `    {\n`;
-            code += `        return self::findOne(array('${pk}' => (int)$id));\n`;
+            code += `        return self::findOne(['${pk}' => (int)$id]);\n`;
             code += `    }\n\n`;
         }
 
@@ -623,9 +623,9 @@ class CodeGenerator {
             code += `     * @return ${className}|null\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function findOne(array $conditions = array(), string $orderBy = '${pk} DESC'): ?${className}\n`;
+                code += `    public static function findOne(array $conditions = [], string $orderBy = '${pk} DESC'): ?${className}\n`;
             } else {
-                code += `    public static function findOne($conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function findOne($conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        $result = self::find($conditions, $orderBy, 1, 0);\n`;
@@ -643,9 +643,9 @@ class CodeGenerator {
             code += `     * @return array Array of ${className} objects\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function findAll(array $conditions = array(), string $orderBy = '${pk} DESC'): array\n`;
+                code += `    public static function findAll(array $conditions = [], string $orderBy = '${pk} DESC'): array\n`;
             } else {
-                code += `    public static function findAll($conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function findAll($conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        $result = self::find($conditions, $orderBy);\n`;
@@ -670,9 +670,9 @@ class CodeGenerator {
             code += `     * @return array Array with 'data' key containing ${className} objects\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function find(array $conditions = array(), string $orderBy = '${pk} DESC', ?int $limit = null, int $offset = 0): array\n`;
+                code += `    public static function find(array $conditions = [], string $orderBy = '${pk} DESC', ?int $limit = null, int $offset = 0): array\n`;
             } else {
-                code += `    public static function find($conditions = array(), $orderBy = '${pk} DESC', $limit = null, $offset = 0)\n`;
+                code += `    public static function find($conditions = [], $orderBy = '${pk} DESC', $limit = null, $offset = 0)\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -692,14 +692,14 @@ class CodeGenerator {
             code += `ORDER BY {\$orderBy}{\$limitSQL}\n`;
             code += `SQL;\n\n`;
             code += `        $res = $db->query($sql, $args);\n`;
-            code += `        $items = array();\n`;
+            code += `        $items = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $item = new ${className}();\n`;
             code += `            $item->parse($row);\n`;
             code += `            $items[] = $item;\n`;
             code += `        }\n\n`;
-            code += `        return array('data' => $items);\n`;
+            code += `        return ['data' => $items];\n`;
             code += `    }\n\n`;
         }
 
@@ -724,9 +724,9 @@ class CodeGenerator {
             code += `     * @return array Pagination result with data and metadata\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function paginate(int $page = 1, ?int $perPage = null, array $conditions = array(), string $orderBy = '${pk} DESC'): array\n`;
+                code += `    public static function paginate(int $page = 1, ?int $perPage = null, array $conditions = [], string $orderBy = '${pk} DESC'): array\n`;
             } else {
-                code += `    public static function paginate($page = 1, $perPage = null, $conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function paginate($page = 1, $perPage = null, $conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        $perPage = ($perPage !== null) ? (int)$perPage : self::$defaultPerPage;\n`;
@@ -735,9 +735,9 @@ class CodeGenerator {
             code += `        $total = self::count($conditions);\n`;
             code += `        $totalPages = ($perPage > 0) ? (int)ceil($total / $perPage) : 0;\n\n`;
             code += `        $result = self::find($conditions, $orderBy, $perPage, $offset);\n\n`;
-            code += `        return array(\n`;
+            code += `        return [\n`;
             code += `            'data'        => $result['data'],\n`;
-            code += `            'pagination'  => array(\n`;
+            code += `            'pagination'  => [\n`;
             code += `                'current_page'  => $page,\n`;
             code += `                'per_page'      => $perPage,\n`;
             code += `                'total_items'   => $total,\n`;
@@ -750,8 +750,8 @@ class CodeGenerator {
             code += `                'last_item'     => min($offset + $perPage, $total),\n`;
             code += `                'from'          => ($total > 0) ? $offset + 1 : 0,\n`;
             code += `                'to'            => min($offset + $perPage, $total)\n`;
-            code += `            )\n`;
-            code += `        );\n`;
+            code += `            ]\n`;
+            code += `        ];\n`;
             code += `    }\n\n`;
         }
 
@@ -773,8 +773,8 @@ class CodeGenerator {
                 code += `        string $keyword,\n`;
                 code += `        int $page = 1,\n`;
                 code += `        ?int $perPage = null,\n`;
-                code += `        array $searchColumns = array(),\n`;
-                code += `        array $additionalConditions = array(),\n`;
+                code += `        array $searchColumns = [],\n`;
+                code += `        array $additionalConditions = [],\n`;
                 code += `        string $orderBy = '${pk} DESC'\n`;
                 code += `    ): array {\n`;
             } else {
@@ -782,8 +782,8 @@ class CodeGenerator {
                 code += `        $keyword,\n`;
                 code += `        $page = 1,\n`;
                 code += `        $perPage = null,\n`;
-                code += `        $searchColumns = array(),\n`;
-                code += `        $additionalConditions = array(),\n`;
+                code += `        $searchColumns = [],\n`;
+                code += `        $additionalConditions = [],\n`;
                 code += `        $orderBy = '${pk} DESC'\n`;
                 code += `    ) {\n`;
             }
@@ -793,10 +793,10 @@ class CodeGenerator {
             code += `        $total = self::searchCount($keyword, $searchColumns, $additionalConditions);\n`;
             code += `        $totalPages = ($perPage > 0) ? (int)ceil($total / $perPage) : 0;\n\n`;
             code += `        $data = self::search($keyword, $searchColumns, $additionalConditions, $orderBy, $perPage, $offset);\n\n`;
-            code += `        return array(\n`;
+            code += `        return [\n`;
             code += `            'data'        => $data,\n`;
             code += `            'keyword'     => $keyword,\n`;
-            code += `            'pagination'  => array(\n`;
+            code += `            'pagination'  => [\n`;
             code += `                'current_page'  => $page,\n`;
             code += `                'per_page'      => $perPage,\n`;
             code += `                'total_items'   => $total,\n`;
@@ -807,8 +807,8 @@ class CodeGenerator {
             code += `                'next_page'     => ($page < $totalPages) ? $page + 1 : null,\n`;
             code += `                'from'          => ($total > 0) ? $offset + 1 : 0,\n`;
             code += `                'to'            => min($offset + $perPage, $total)\n`;
-            code += `            )\n`;
-            code += `        );\n`;
+            code += `            ]\n`;
+            code += `        ];\n`;
             code += `    }\n\n`;
         }
 
@@ -837,8 +837,8 @@ class CodeGenerator {
             if (isPhp8) {
                 code += `    public static function search(\n`;
                 code += `        string $keyword,\n`;
-                code += `        array $searchColumns = array(),\n`;
-                code += `        array $additionalConditions = array(),\n`;
+                code += `        array $searchColumns = [],\n`;
+                code += `        array $additionalConditions = [],\n`;
                 code += `        string $orderBy = '${pk} DESC',\n`;
                 code += `        ?int $limit = null,\n`;
                 code += `        int $offset = 0\n`;
@@ -846,8 +846,8 @@ class CodeGenerator {
             } else {
                 code += `    public static function search(\n`;
                 code += `        $keyword,\n`;
-                code += `        $searchColumns = array(),\n`;
-                code += `        $additionalConditions = array(),\n`;
+                code += `        $searchColumns = [],\n`;
+                code += `        $additionalConditions = [],\n`;
                 code += `        $orderBy = '${pk} DESC',\n`;
                 code += `        $limit = null,\n`;
                 code += `        $offset = 0\n`;
@@ -859,7 +859,7 @@ class CodeGenerator {
             code += `        {\n`;
             code += `            $searchColumns = self::$defaultSearchColumns;\n`;
             code += `        }\n\n`;
-            code += `        $searchClauses = array();\n`;
+            code += `        $searchClauses = [];\n`;
             code += `        foreach ($searchColumns as $column)\n`;
             code += `        {\n`;
             code += "            $searchClauses[] = \"`{$column}` LIKE '::search_keyword'\";\n";
@@ -881,7 +881,7 @@ class CodeGenerator {
             code += `ORDER BY {\$orderBy}{\$limitSQL}\n`;
             code += `SQL;\n\n`;
             code += `        $res = $db->query($sql, $args);\n`;
-            code += `        $items = array();\n`;
+            code += `        $items = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $item = new ${className}();\n`;
@@ -903,9 +903,9 @@ class CodeGenerator {
             code += `     * @return ${className}|null\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function searchOne(string $keyword, array $searchColumns = array(), array $additionalConditions = array()): ?${className}\n`;
+                code += `    public static function searchOne(string $keyword, array $searchColumns = [], array $additionalConditions = []): ?${className}\n`;
             } else {
-                code += `    public static function searchOne($keyword, $searchColumns = array(), $additionalConditions = array())\n`;
+                code += `    public static function searchOne($keyword, $searchColumns = [], $additionalConditions = [])\n`;
             }
             code += `    {\n`;
             code += `        $results = self::search($keyword, $searchColumns, $additionalConditions, '${pk} DESC', 1, 0);\n`;
@@ -931,9 +931,9 @@ class CodeGenerator {
             code += `     * @return int\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function count(array $conditions = array()): int\n`;
+                code += `    public static function count(array $conditions = []): int\n`;
             } else {
-                code += `    public static function count($conditions = array())\n`;
+                code += `    public static function count($conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -965,9 +965,9 @@ class CodeGenerator {
             code += `     * @return int\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function searchCount(string $keyword, array $searchColumns = array(), array $additionalConditions = array()): int\n`;
+                code += `    public static function searchCount(string $keyword, array $searchColumns = [], array $additionalConditions = []): int\n`;
             } else {
-                code += `    public static function searchCount($keyword, $searchColumns = array(), $additionalConditions = array())\n`;
+                code += `    public static function searchCount($keyword, $searchColumns = [], $additionalConditions = [])\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -976,7 +976,7 @@ class CodeGenerator {
             code += `        {\n`;
             code += `            $searchColumns = self::$defaultSearchColumns;\n`;
             code += `        }\n\n`;
-            code += `        $searchClauses = array();\n`;
+            code += `        $searchClauses = [];\n`;
             code += `        foreach ($searchColumns as $column)\n`;
             code += `        {\n`;
             code += "            $searchClauses[] = \"`{$column}` LIKE '::search_keyword'\";\n";
@@ -1042,7 +1042,7 @@ class CodeGenerator {
                 code += `    public static function existsById($id)\n`;
             }
             code += `    {\n`;
-            code += `        return self::exists(array('${pk}' => (int)$id));\n`;
+            code += `        return self::exists(['${pk}' => (int)$id]);\n`;
             code += `    }\n\n`;
         }
 
@@ -1057,9 +1057,9 @@ class CodeGenerator {
             code += `     * @return array Array of distinct values\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function distinct(string $column, array $conditions = array(), ?string $orderBy = null): array\n`;
+                code += `    public static function distinct(string $column, array $conditions = [], ?string $orderBy = null): array\n`;
             } else {
-                code += `    public static function distinct($column, $conditions = array(), $orderBy = null)\n`;
+                code += `    public static function distinct($column, $conditions = [], $orderBy = null)\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -1073,7 +1073,7 @@ class CodeGenerator {
             code += `{\$orderSQL}\n`;
             code += `SQL;\n\n`;
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
-            code += `        $values = array();\n`;
+            code += `        $values = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $values[] = $row->$column;\n`;
@@ -1094,9 +1094,9 @@ class CodeGenerator {
             code += `     * @return array Associative array\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function pluck(string $valueColumn, string $keyColumn = '${pk}', array $conditions = array(), ?string $orderBy = null): array\n`;
+                code += `    public static function pluck(string $valueColumn, string $keyColumn = '${pk}', array $conditions = [], ?string $orderBy = null): array\n`;
             } else {
-                code += `    public static function pluck($valueColumn, $keyColumn = '${pk}', $conditions = array(), $orderBy = null)\n`;
+                code += `    public static function pluck($valueColumn, $keyColumn = '${pk}', $conditions = [], $orderBy = null)\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -1110,7 +1110,7 @@ class CodeGenerator {
             code += `{\$orderSQL}\n`;
             code += `SQL;\n\n`;
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
-            code += `        $pairs = array();\n`;
+            code += `        $pairs = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $pairs[$row->$keyColumn] = $row->$valueColumn;\n`;
@@ -1130,9 +1130,9 @@ class CodeGenerator {
             code += `     * @return array Array of values\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function column(string $column, array $conditions = array(), string $orderBy = '${pk} DESC'): array\n`;
+                code += `    public static function column(string $column, array $conditions = [], string $orderBy = '${pk} DESC'): array\n`;
             } else {
-                code += `    public static function column($column, $conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function column($column, $conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -1145,7 +1145,7 @@ class CodeGenerator {
             code += `ORDER BY {\$orderBy}\n`;
             code += `SQL;\n\n`;
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
-            code += `        $values = array();\n`;
+            code += `        $values = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $values[] = $row->$column;\n`;
@@ -1161,9 +1161,9 @@ class CodeGenerator {
             code += `     * @return array Array of IDs\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function ids(array $conditions = array(), string $orderBy = '${pk} DESC'): array\n`;
+                code += `    public static function ids(array $conditions = [], string $orderBy = '${pk} DESC'): array\n`;
             } else {
-                code += `    public static function ids($conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function ids($conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        return self::column('${pk}', $conditions, $orderBy);\n`;
@@ -1187,14 +1187,14 @@ class CodeGenerator {
             code += `    {\n`;
             code += `        if (empty($ids))\n`;
             code += `        {\n`;
-            code += `            return array();\n`;
+            code += `            return [];\n`;
             code += `        }\n\n`;
-            code += `        $conditions = array(\n`;
-            code += `            '${pk}' => array(\n`;
+            code += `        $conditions = [\n`;
+            code += `            '${pk}' => [\n`;
             code += `                'operator' => 'IN',\n`;
             code += `                'value' => $ids\n`;
-            code += `            )\n`;
-            code += `        );\n\n`;
+            code += `            ]\n`;
+            code += `        ];\n\n`;
             code += `        return self::findAll($conditions, $orderBy);\n`;
             code += `    }\n\n`;
         }
@@ -1209,9 +1209,9 @@ class CodeGenerator {
             code += `     * @return ${className}|null\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function first(array $conditions = array(), string $orderBy = '${pk} ASC'): ?${className}\n`;
+                code += `    public static function first(array $conditions = [], string $orderBy = '${pk} ASC'): ?${className}\n`;
             } else {
-                code += `    public static function first($conditions = array(), $orderBy = '${pk} ASC')\n`;
+                code += `    public static function first($conditions = [], $orderBy = '${pk} ASC')\n`;
             }
             code += `    {\n`;
             code += `        return self::findOne($conditions, $orderBy);\n`;
@@ -1225,9 +1225,9 @@ class CodeGenerator {
             code += `     * @return ${className}|null\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function last(array $conditions = array(), string $orderBy = '${pk} DESC'): ?${className}\n`;
+                code += `    public static function last(array $conditions = [], string $orderBy = '${pk} DESC'): ?${className}\n`;
             } else {
-                code += `    public static function last($conditions = array(), $orderBy = '${pk} DESC')\n`;
+                code += `    public static function last($conditions = [], $orderBy = '${pk} DESC')\n`;
             }
             code += `    {\n`;
             code += `        return self::findOne($conditions, $orderBy);\n`;
@@ -1251,9 +1251,9 @@ class CodeGenerator {
             code += `     * @return float\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function sum(string $column, array $conditions = array()): float\n`;
+                code += `    public static function sum(string $column, array $conditions = []): float\n`;
             } else {
-                code += `    public static function sum($column, $conditions = array())\n`;
+                code += `    public static function sum($column, $conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        return (float)self::aggregate('SUM', $column, $conditions);\n`;
@@ -1268,9 +1268,9 @@ class CodeGenerator {
             code += `     * @return float\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function avg(string $column, array $conditions = array()): float\n`;
+                code += `    public static function avg(string $column, array $conditions = []): float\n`;
             } else {
-                code += `    public static function avg($column, $conditions = array())\n`;
+                code += `    public static function avg($column, $conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        return (float)self::aggregate('AVG', $column, $conditions);\n`;
@@ -1285,9 +1285,9 @@ class CodeGenerator {
             code += `     * @return mixed\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function min(string $column, array $conditions = array()): mixed\n`;
+                code += `    public static function min(string $column, array $conditions = []): mixed\n`;
             } else {
-                code += `    public static function min($column, $conditions = array())\n`;
+                code += `    public static function min($column, $conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        return self::aggregate('MIN', $column, $conditions);\n`;
@@ -1302,9 +1302,9 @@ class CodeGenerator {
             code += `     * @return mixed\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function max(string $column, array $conditions = array()): mixed\n`;
+                code += `    public static function max(string $column, array $conditions = []): mixed\n`;
             } else {
-                code += `    public static function max($column, $conditions = array())\n`;
+                code += `    public static function max($column, $conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        return self::aggregate('MAX', $column, $conditions);\n`;
@@ -1320,9 +1320,9 @@ class CodeGenerator {
             code += `     * @return mixed\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function aggregate(string $function, string $column, array $conditions = array()): mixed\n`;
+                code += `    public static function aggregate(string $function, string $column, array $conditions = []): mixed\n`;
             } else {
-                code += `    public static function aggregate($function, $column, $conditions = array())\n`;
+                code += `    public static function aggregate($function, $column, $conditions = [])\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
@@ -1408,8 +1408,8 @@ class CodeGenerator {
             code += `        }\n\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
             code += `        $table = SystemTables::${tableConstant};\n\n`;
-            code += `        $setClauses = array();\n`;
-            code += `        $args = array();\n`;
+            code += `        $setClauses = [];\n`;
+            code += `        $args = [];\n`;
             code += `        foreach ($data as $column => $value)\n`;
             code += `        {\n`;
             code += `            $placeholder = '::set_' . $column;\n`;
@@ -1458,10 +1458,13 @@ class CodeGenerator {
         code += `    {\n`;
         code += `        if (empty($conditions))\n`;
         code += `        {\n`;
-        code += `            return array('sql' => '1=1', 'args' => array());\n`;
+        code += `            return [\n`;
+        code += `                'sql' => '1=1',\n`;
+        code += `                'args' => []\n`;
+        code += `            ];\n`;
         code += `        }\n\n`;
-        code += `        $whereClauses = array();\n`;
-        code += `        $args = array();\n`;
+        code += `        $whereClauses = [];\n`;
+        code += `        $args = [];\n`;
         code += `        $index = 0;\n\n`;
         code += `        foreach ($conditions as $column => $value)\n`;
         code += `        {\n`;
@@ -1481,7 +1484,7 @@ class CodeGenerator {
         code += `                    case 'NOT IN':\n`;
         code += `                        if (!empty($value['value']) && is_array($value['value']))\n`;
         code += `                        {\n`;
-        code += `                            $inValues = array();\n`;
+        code += `                            $inValues = [];\n`;
         code += `                            foreach ($value['value'] as $i => $v)\n`;
         code += `                            {\n`;
         code += `                                $inPlaceholder = $placeholder . '_' . $i;\n`;
@@ -1507,7 +1510,7 @@ class CodeGenerator {
         code += `                        break;\n\n`;
         code += `                    default:\n`;
         code += `                        // =, !=, <>, >, <, >=, <=\n`;
-        code += `                        if (in_array($operator, array('=', '!=', '<>', '>', '<', '>=', '<=')))\n`;
+        code += `                        if (in_array($operator, ['=', '!=', '<>', '>', '<', '>=', '<=']))\n`;
         code += `                        {\n`;
         code += "                            $whereClauses[] = \"`{$column}` {$operator} '{$placeholder}'\";\n";
         code += `                            $args[$placeholder] = $value['value'];\n`;
@@ -1525,12 +1528,15 @@ class CodeGenerator {
         code += `        }\n\n`;
         code += `        if (empty($whereClauses))\n`;
         code += `        {\n`;
-        code += `            return array('sql' => '1=1', 'args' => array());\n`;
+        code += `            return [\n`;
+        code += `                'sql' => '1=1',\n`;
+        code += `                'args' => []\n`;
+        code += `            ];\n`;
         code += `        }\n\n`;
-        code += `        return array(\n`;
+        code += `        return [\n`;
         code += `            'sql' => implode(' AND ', $whereClauses),\n`;
         code += `            'args' => $args\n`;
-        code += `        );\n`;
+        code += `        ];\n`;
         code += `    }\n\n`;
 
         // =====================================================================
@@ -1549,14 +1555,14 @@ class CodeGenerator {
             code += `     * @return array Array of ${className} objects\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function raw(string $sql, array $args = array()): array\n`;
+                code += `    public static function raw(string $sql, array $args = []): array\n`;
             } else {
-                code += `    public static function raw($sql, $args = array())\n`;
+                code += `    public static function raw($sql, $args = [])\n`;
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
             code += `        $res = $db->query($sql, $args);\n\n`;
-            code += `        $items = array();\n`;
+            code += `        $items = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
             code += `        {\n`;
             code += `            $item = new ${className}();\n`;
@@ -1574,9 +1580,9 @@ class CodeGenerator {
             code += `     * @return ${className}|null\n`;
             code += `     */\n`;
             if (isPhp8) {
-                code += `    public static function rawOne(string $sql, array $args = array()): ?${className}\n`;
+                code += `    public static function rawOne(string $sql, array $args = []): ?${className}\n`;
             } else {
-                code += `    public static function rawOne($sql, $args = array())\n`;
+                code += `    public static function rawOne($sql, $args = [])\n`;
             }
             code += `    {\n`;
             code += `        $results = self::raw($sql, $args);\n`;
@@ -1899,7 +1905,7 @@ class CodeGenerator {
         code += `// \$status = isset(\$_GET['status']) ? \$_GET['status'] : null;\n`;
         code += `// \n`;
         code += `// // Build conditions\n`;
-        code += `// \$conditions = array();\n`;
+        code += `// \$conditions = [];\n`;
         code += `// if (\$status)\n`;
         code += `// {\n`;
         code += `//     \$conditions['status'] = \$status;\n`;
@@ -2193,14 +2199,14 @@ class CodeGenerator {
         });
         code += `)\n`;
         code += `SQL;\n\n`;
-        code += `            $args = array(\n`;
+        code += `            $args = [\n`;
         insertCols.forEach((col, idx) => {
             const prop = this.columnToProperty(col.Field);
             const comma = idx < insertCols.length - 1 ? ',' : '';
             const padding = ' '.repeat(maxInsertColLen - col.Field.length);
             code += `                '::${col.Field}'${padding} => $this->${prop}${comma}\n`;
         });
-        code += `            );\n\n`;
+        code += `            ];\n\n`;
         code += `            $res = $db->query($sql, $args);\n`;
         code += `            if (!$res)\n`;
         code += `            {\n`;
@@ -2234,7 +2240,7 @@ class CodeGenerator {
         });
         code += `WHERE ${pk} = '::${pk}'\n`;
         code += `SQL;\n\n`;
-        code += `            $args = array(\n`;
+        code += `            $args = [\n`;
         updateCols.forEach((col, idx) => {
             const prop = this.columnToProperty(col.Field);
             const comma = idx < updateCols.length - 1 ? ',' : '';
@@ -2243,7 +2249,7 @@ class CodeGenerator {
         });
         const pkPadding = ' '.repeat(maxUpdateColLen - pk.length);
         code += `                '::${pk}'${pkPadding} => $this->${pkProp}\n`;
-        code += `            );\n\n`;
+        code += `            ];\n\n`;
         code += `            $res = $db->query($sql, $args);\n`;
         code += `            if (!$res)\n`;
         code += `            {\n`;
@@ -2268,7 +2274,7 @@ class CodeGenerator {
         code += `FROM \`{\$table}\`\n`;
         code += `WHERE ${pk} = '::${pk}'\n`;
         code += `SQL;\n\n`;
-        code += `            $res = $db->query($sql, array('::${pk}' => $${pkProp}));\n`;
+        code += `            $res = $db->query($sql, ['::${pk}' => $${pkProp}]);\n`;
         code += `            if (!$res || $db->resultNumRows($res) < 1)\n`;
         code += `            {\n`;
         code += `                return FALSE;\n`;
@@ -2291,7 +2297,7 @@ class CodeGenerator {
         code += `FROM \`{\$table}\`\n`;
         code += `WHERE ${pk} = '::${pk}'\n`;
         code += `SQL;\n\n`;
-        code += `            $res = $db->query($sql, array('::${pk}' => $this->${pkProp}));\n`;
+        code += `            $res = $db->query($sql, ['::${pk}' => $this->${pkProp}]);\n`;
         code += `            if (!$res || $db->resultNumRows($res) < 1)\n`;
         code += `            {\n`;
         code += `                return FALSE;\n`;
@@ -2320,9 +2326,9 @@ class CodeGenerator {
         code += `FROM \`{\$table}\`\n`;
         code += `WHERE ${pk} = '::${pk}'\n`;
         code += `SQL;\n\n`;
-        code += `            $args = array(\n`;
+        code += `            $args = [\n`;
         code += `                '::${pk}' => $${pkProp}\n`;
-        code += `            );\n\n`;
+        code += `            ];\n\n`;
         code += `            $res = $db->query($sql, $args);\n`;
         code += `            if (!$res)\n`;
         code += `            {\n`;
