@@ -1,0 +1,485 @@
+// Query panels styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Query Type Tabs
+.query-type-tabs {
+  @include flex-start;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+}
+
+.query-type-tab {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $text-secondary;
+  border-radius: $border-radius;
+  transition: all $transition-fast;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: $gray-100;
+    color: $text-primary;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: white;
+  }
+}
+
+// Query Panels
+.query-panel {
+  display: none;
+
+  &.active {
+    display: flex;
+  }
+}
+
+// Full Width Select
+.full-width-select {
+  width: 100%;
+  padding: $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    @include focus-ring;
+    border-color: $color-primary;
+  }
+}
+
+// INSERT Builder Styles
+.insert-data-section {
+  flex: 1;
+  min-height: 150px;
+}
+
+.insert-table-wrapper {
+  overflow-x: auto;
+  @include custom-scrollbar;
+}
+
+.insert-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th,
+  td {
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    background: $gray-50;
+    font-weight: 600;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: $text-secondary;
+
+    .required {
+      color: $color-danger;
+      margin-left: 2px;
+    }
+  }
+
+  .row-num {
+    width: 40px;
+    text-align: center;
+    color: $text-muted;
+    background: $gray-50;
+  }
+
+  .actions {
+    width: 40px;
+    text-align: center;
+  }
+}
+
+.input-with-null {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.insert-input {
+  flex: 1;
+  min-width: 100px;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    @include focus-ring;
+    border-color: $color-primary;
+  }
+
+  &:disabled {
+    background: $gray-100;
+    color: $text-muted;
+  }
+
+  &[type="checkbox"] {
+    flex: 0;
+    min-width: auto;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+textarea.insert-input {
+  min-height: 60px;
+  resize: vertical;
+  font-family: $font-mono;
+}
+
+.null-label {
+  @include flex-center;
+  gap: 2px;
+  font-size: $font-size-xs;
+  color: $text-muted;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+// SQL Preview Box
+.sql-preview-box {
+  margin: 0;
+  padding: $spacing-md;
+  background: $gray-900;
+  color: $gray-100;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  border-radius: $border-radius;
+  overflow: auto;
+  max-height: 200px;
+  @include custom-scrollbar;
+
+  code {
+    font-family: inherit;
+  }
+
+  .hljs-keyword {
+    color: #ff7b72;
+  }
+  .hljs-string {
+    color: #a5d6ff;
+  }
+  .hljs-number {
+    color: #79c0ff;
+  }
+  .hljs-function {
+    color: #d2a8ff;
+  }
+  .hljs-comment {
+    color: #8b949e;
+    font-style: italic;
+  }
+}
+
+// Panel Actions
+.panel-actions {
+  @include flex-start;
+  gap: $spacing-sm;
+}
+
+// Modal
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+
+  &.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  @include flex-between;
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: 600;
+  }
+}
+
+.modal-body {
+  flex: 1;
+  padding: $spacing-md;
+  overflow-y: auto;
+  @include custom-scrollbar;
+}
+
+.modal-footer {
+  @include flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+}
+
+.import-hint {
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  p {
+    margin-bottom: $spacing-xs;
+  }
+
+  code {
+    display: block;
+    padding: $spacing-sm;
+    background: $gray-100;
+    border-radius: $border-radius;
+    font-family: $font-mono;
+    font-size: $font-size-xs;
+    overflow-x: auto;
+  }
+}
+
+.import-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  resize: vertical;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    @include focus-ring;
+    border-color: $color-primary;
+  }
+}
+
+// UPDATE Builder Styles
+.set-columns-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.set-column-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: $gray-100;
+  }
+}
+
+.set-checkbox-label {
+  @include flex-start;
+  gap: $spacing-sm;
+  min-width: 200px;
+  cursor: pointer;
+
+  .column-name-label {
+    font-family: $font-mono;
+    font-size: $font-size-sm;
+    font-weight: 500;
+  }
+
+  .column-type-label {
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+}
+
+.set-value-wrapper {
+  flex: 1;
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+.set-input {
+  width: 100%;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    @include focus-ring;
+    border-color: $color-primary;
+  }
+
+  &:disabled {
+    background: $gray-100;
+    color: $text-muted;
+  }
+}
+
+// Warning Box
+.warning-box {
+  @include flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba($color-warning, 0.1);
+  border: 1px solid rgba($color-warning, 0.3);
+  border-radius: $border-radius;
+  color: $color-warning;
+  font-size: $font-size-sm;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// Danger Box
+.danger-box {
+  @include flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba($color-danger, 0.1);
+  border: 1px solid rgba($color-danger, 0.3);
+  border-radius: $border-radius;
+  color: $color-danger;
+  font-size: $font-size-sm;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// Type-to-Confirm Modal
+.confirm-modal {
+  max-width: 450px;
+
+  .danger-header {
+    background: rgba($color-danger, 0.1);
+    border-bottom-color: rgba($color-danger, 0.2);
+
+    h3 {
+      color: $color-danger;
+    }
+  }
+}
+
+.confirm-warning {
+  text-align: center;
+  margin-bottom: $spacing-md;
+
+  svg {
+    color: $color-danger;
+  }
+}
+
+.confirm-message {
+  text-align: center;
+  font-weight: 600;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-sm;
+}
+
+.confirm-details {
+  text-align: center;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-md;
+}
+
+.confirm-input-wrapper {
+  margin-top: $spacing-md;
+
+  label {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-xs;
+
+    strong {
+      color: $color-danger;
+      font-family: $font-mono;
+    }
+  }
+}
+
+.confirm-input {
+  width: 100%;
+  padding: $spacing-sm;
+  border: 2px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  font-family: $font-mono;
+  text-align: center;
+
+  &:focus {
+    outline: none;
+    border-color: $color-danger;
+  }
+}
+
+// Danger Button
+.btn-danger {
+  background: $color-danger;
+  color: white;
+  border-color: $color-danger;
+
+  &:hover:not(:disabled) {
+    background: #dc2626;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+

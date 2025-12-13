@@ -1,0 +1,503 @@
+// User management styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// User Management Styles
+// ===============================
+
+.query-type-divider {
+  width: 1px;
+  height: 20px;
+  background: $border-color;
+  margin: 0 $spacing-xs;
+}
+
+.btn-primary-sm {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: white;
+  background: $color-primary;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: $color-primary-dark;
+  }
+}
+
+.users-panel-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.users-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+  flex: 1;
+  min-height: 0;
+  padding: $spacing-md;
+}
+
+.users-list-section,
+.user-details-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+}
+
+.users-list-section .section-header,
+.user-details-section .section-header {
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+  background: $gray-50;
+}
+
+#users-list-container,
+#user-details-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-sm;
+  @include custom-scrollbar;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.user-row {
+  @include flex-between;
+  padding: $spacing-sm $spacing-md;
+  background: $gray-50;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-100;
+  }
+
+  &.selected {
+    background: rgba($color-primary, 0.1);
+    border: 1px solid rgba($color-primary, 0.3);
+  }
+
+  &.root-user {
+    border-left: 3px solid $color-warning;
+  }
+}
+
+.user-info {
+  @include flex-start;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.user-name {
+  @include flex-start;
+  gap: $spacing-xs;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  font-weight: 600;
+
+  svg {
+    color: $text-muted;
+  }
+}
+
+.user-host {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  font-family: $font-mono;
+}
+
+.user-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: $gray-200;
+  border-radius: 3px;
+  color: $text-secondary;
+  font-weight: 500;
+
+  &.locked {
+    background: rgba($color-danger, 0.15);
+    color: $color-danger;
+  }
+
+  &.warning {
+    background: rgba($color-warning, 0.15);
+    color: $color-warning;
+  }
+}
+
+.user-actions {
+  @include flex-start;
+  gap: $spacing-xs;
+}
+
+.user-action-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: $border-radius;
+  color: $text-muted;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-200;
+    color: $text-primary;
+  }
+
+  &.danger:hover:not(:disabled) {
+    background: rgba($color-danger, 0.1);
+    color: $color-danger;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+// User Details
+.user-details {
+  padding: $spacing-md;
+
+  h4 {
+    font-size: $font-size-base;
+    font-weight: 600;
+    margin-bottom: $spacing-md;
+    font-family: $font-mono;
+  }
+}
+
+.detail-section {
+  margin-bottom: $spacing-md;
+
+  h5 {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+    padding-bottom: $spacing-xs;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-label {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+.detail-value {
+  font-size: $font-size-sm;
+  font-family: $font-mono;
+}
+
+.grants-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.grant-item {
+  display: block;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  word-break: break-all;
+}
+
+// User Form
+.user-form {
+  margin: $spacing-md;
+  padding: $spacing-md;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+
+  h4 {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.error-message {
+  padding: $spacing-md;
+  color: $color-danger;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.btn-danger-sm {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: white;
+  background: $color-danger;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+// User Sub-tabs
+.user-sub-tabs {
+  @include flex-start;
+  gap: 0;
+  border-bottom: 1px solid $border-color;
+  background: $gray-50;
+}
+
+.user-sub-tab {
+  @include button-reset;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: $text-secondary;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-primary;
+  }
+
+  &.active {
+    color: $color-primary;
+    border-bottom-color: $color-primary;
+    background: $bg-primary;
+  }
+}
+
+.user-sub-panel {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  &.active {
+    display: block;
+  }
+}
+
+// Permissions Section
+.permissions-actions {
+  @include flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+  background: $gray-50;
+}
+
+#permissions-container {
+  padding: $spacing-md;
+}
+
+.no-permissions {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+  color: $text-muted;
+  text-align: center;
+
+  svg {
+    color: $gray-300;
+  }
+}
+
+.permissions-summary {
+  margin-bottom: $spacing-md;
+
+  h5 {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.permission-scope {
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $border-radius;
+}
+
+.scope-header {
+  @include flex-between;
+  margin-bottom: $spacing-sm;
+}
+
+.scope-name {
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.btn-revoke-scope {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-danger;
+  border: 1px solid $color-danger;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: rgba($color-danger, 0.1);
+  }
+}
+
+.scope-privileges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.privilege-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba($color-primary, 0.1);
+  color: $color-primary;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.grants-raw {
+  h5 {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+// Permission Form
+.permission-form {
+  padding: $spacing-md;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  margin-top: $spacing-md;
+
+  h4 {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+  }
+
+  .form-description {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin-bottom: $spacing-md;
+  }
+}
+
+// Preset Cards
+.preset-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin: $spacing-md 0;
+}
+
+.preset-card {
+  padding: $spacing-md;
+  background: $gray-50;
+  border: 2px solid $border-color;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: center;
+
+  &:hover {
+    border-color: $color-primary;
+    background: rgba($color-primary, 0.05);
+  }
+}
+
+.preset-name {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  margin-bottom: $spacing-xs;
+}
+
+.preset-description {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+// Privilege Checkboxes
+.privilege-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $border-radius;
+  max-height: 200px;
+  overflow-y: auto;
+  @include custom-scrollbar;
+}
+
+.privilege-checkbox {
+  @include flex-start;
+  gap: $spacing-xs;
+  padding: $spacing-xs;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: $bg-primary;
+  }
+
+  &.all-privs {
+    grid-column: 1 / -1;
+    background: rgba($color-warning, 0.1);
+    font-weight: 600;
+  }
+
+  input:disabled + span {
+    opacity: 0.5;
+  }
+}
+
+// =================================
+// Phase 8: UI Enhancements
+// =================================

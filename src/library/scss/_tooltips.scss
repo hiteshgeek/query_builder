@@ -1,0 +1,107 @@
+// Tooltip styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Custom Tooltip Styles
+// =================================
+
+.custom-tooltip {
+  position: absolute;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, visibility 150ms ease;
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.custom-tooltip-content {
+  position: relative;
+  background: $gray-900;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: $shadow-md;
+
+  // For dark theme compatibility
+  [data-theme="dark"] & {
+    background: $gray-100;
+    color: $gray-900;
+  }
+}
+
+.custom-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+// Position variations
+.custom-tooltip-top {
+  .custom-tooltip-arrow {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    border-top-color: $gray-900;
+    border-bottom-width: 0;
+
+    [data-theme="dark"] & {
+      border-top-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-bottom {
+  .custom-tooltip-arrow {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    border-bottom-color: $gray-900;
+    border-top-width: 0;
+
+    [data-theme="dark"] & {
+      border-bottom-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-left {
+  .custom-tooltip-arrow {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(100%);
+    border-left-color: $gray-900;
+    border-right-width: 0;
+
+    [data-theme="dark"] & {
+      border-left-color: $gray-100;
+    }
+  }
+}
+
+.custom-tooltip-right {
+  .custom-tooltip-arrow {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(-100%);
+    border-right-color: $gray-900;
+    border-left-width: 0;
+
+    [data-theme="dark"] & {
+      border-right-color: $gray-100;
+    }
+  }
+}
+

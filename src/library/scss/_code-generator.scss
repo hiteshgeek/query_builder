@@ -1,0 +1,506 @@
+// Code generator panel styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Code Generator Panel
+// ================================
+
+.codegen-panel {
+  .panel-content {
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+.codegen-panel-content {
+  height: 100%;
+  overflow: hidden;
+}
+
+.codegen-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.codegen-config-side {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-right: 1px solid $border-color;
+  overflow-y: auto;
+  background: $bg-secondary;
+
+  .builder-section {
+    background: $bg-primary;
+    border-radius: $border-radius;
+    padding: $spacing-sm;
+  }
+}
+
+.codegen-generate-options {
+  display: flex;
+  gap: $spacing-md;
+
+  .checkbox-label {
+    @include flex-start;
+    gap: $spacing-xs;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: $color-primary;
+    }
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+.codegen-code-side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.codegen-code-header {
+  @include flex-between;
+  padding: $spacing-xs $spacing-md;
+  border-bottom: 1px solid $border-color;
+  background: $bg-secondary;
+  flex-shrink: 0;
+}
+
+.codegen-code-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.codegen-tab {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  font-size: $font-size-sm;
+  color: $text-muted;
+  background: transparent;
+  border-radius: $border-radius $border-radius 0 0;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-tertiary;
+  }
+
+  &.active {
+    color: $color-primary;
+    background: $bg-tertiary;
+    font-weight: 500;
+  }
+}
+
+.codegen-tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+
+  &.active {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.codegen-code-actions {
+  @include flex-center;
+  gap: $spacing-sm;
+}
+
+.form-input-sm {
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  height: auto;
+  min-width: 90px;
+}
+
+.codegen-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  .form-group {
+    label {
+      font-size: $font-size-xs;
+      margin-bottom: 2px;
+    }
+
+    .form-input {
+      padding: $spacing-xs $spacing-sm;
+      font-size: $font-size-sm;
+    }
+  }
+}
+
+.codegen-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+
+  .checkbox-label {
+    @include flex-start;
+    gap: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    cursor: pointer;
+    padding: 2px 0;
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: $color-primary;
+    }
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+.codegen-columns-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  #codegen-columns-container {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+// Configuration Tabs Section
+.codegen-tabs-section {
+  display: flex;
+  flex-direction: column;
+
+  .codegen-config-tabs {
+    display: flex;
+    border-bottom: 1px solid $border-color;
+    background: $bg-tertiary;
+  }
+
+  .codegen-config-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-bottom: 2px solid transparent;
+
+    &:hover {
+      color: $text-primary;
+      background: $bg-tertiary;
+    }
+
+    &.active {
+      color: $color-primary;
+      border-bottom-color: $color-primary;
+      background: $bg-secondary;
+    }
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      cursor: pointer;
+    }
+  }
+
+  .codegen-config-pane {
+    display: none;
+    padding: $spacing-sm;
+    overflow-y: auto;
+    max-height: 320px;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  // Model pane form styles
+  .codegen-config-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      label {
+        font-size: 11px;
+        color: $text-secondary;
+        font-weight: 500;
+      }
+
+      .form-input {
+        padding: 6px 8px;
+        font-size: 12px;
+        background: $bg-tertiary;
+        border: 1px solid $border-color;
+        border-radius: 3px;
+        color: $text-primary;
+
+        &:focus {
+          outline: none;
+          border-color: $color-primary;
+        }
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+    }
+
+    .codegen-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: $spacing-xs;
+      border-top: 1px solid $border-color;
+
+      .checkbox-label {
+        font-size: 11px;
+        padding: 4px 8px;
+        background: $bg-tertiary;
+        border-radius: 3px;
+      }
+    }
+  }
+
+  // Manager pane styles
+  .manager-methods-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: $spacing-xs;
+  }
+
+  .codegen-manager-methods {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .manager-methods-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: $spacing-xs;
+    background: $bg-tertiary;
+    border-radius: 3px;
+
+    .methods-group-label {
+      width: 100%;
+      font-size: 10px;
+      font-weight: 600;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+      text-align: center;
+    }
+
+    .checkbox-label {
+      font-size: 11px;
+      padding: 2px 6px;
+      background: $bg-secondary;
+      border-radius: 3px;
+      display: flex;
+      gap: 3px;
+
+      span {
+        font-family: $font-mono;
+      }
+    }
+  }
+}
+
+.codegen-columns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  padding: $spacing-xs;
+  background: $bg-tertiary;
+}
+
+.codegen-column-item {
+  padding: $spacing-xs $spacing-sm;
+  border-radius: 4px;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $bg-secondary;
+  }
+
+  &.selected {
+    background: rgba($color-primary, 0.1);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    cursor: pointer;
+    width: 100%;
+
+    input[type="checkbox"] {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      accent-color: $color-primary;
+    }
+  }
+
+  .column-info {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .column-name {
+    font-family: $font-mono;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .pk-icon {
+      color: $color-warning;
+    }
+  }
+
+  .column-type {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    padding: 1px 6px;
+    background: $bg-secondary;
+    border-radius: 3px;
+  }
+
+  .column-nullable {
+    font-size: $font-size-xs;
+    color: $color-info;
+    padding: 1px 6px;
+    background: rgba($color-info, 0.1);
+    border-radius: 3px;
+  }
+}
+
+.codegen-code-preview {
+  flex: 1;
+  overflow: auto;
+  background: $bg-tertiary;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+
+  pre {
+    margin: 0;
+    padding: $spacing-md;
+    background: transparent;
+    min-height: 100%;
+  }
+
+  code {
+    background: transparent;
+    color: $text-primary;
+    white-space: pre;
+  }
+
+  // Syntax highlighting colors
+  .hljs-keyword {
+    color: #c678dd;
+  }
+
+  .hljs-string {
+    color: #98c379;
+  }
+
+  .hljs-number {
+    color: #d19a66;
+  }
+
+  .hljs-comment {
+    color: $text-muted;
+    font-style: italic;
+  }
+
+  .hljs-function {
+    color: #61afef;
+  }
+
+  .hljs-class {
+    color: #e5c07b;
+  }
+
+  .hljs-variable {
+    color: #e06c75;
+  }
+
+  .hljs-built_in {
+    color: #56b6c2;
+  }
+}
+
+// Selected table badge in drop zone
+.selected-table-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($color-primary, 0.1);
+  border: 1px solid rgba($color-primary, 0.3);
+  border-radius: $border-radius;
+  color: $color-primary;
+  font-weight: 500;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  .btn-remove-table {
+    @include button-reset;
+    @include flex-center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: $text-muted;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba($color-danger, 0.1);
+      color: $color-danger;
+    }
+  }
+}

@@ -1,0 +1,253 @@
+// Base styles - Reset and foundational elements
+@use "variables" as *;
+@use "mixins" as *;
+
+// Reset
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $text-primary;
+  background: $bg-secondary;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+// App Layout
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+// App Body
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: $spacing-md;
+  gap: $spacing-md;
+}
+
+// Resizers
+.resizer {
+  position: relative;
+  background: $border-color;
+  transition: background $transition-fast;
+  flex-shrink: 0;
+
+  // Subtle grip pattern
+  &::before {
+    content: "";
+    position: absolute;
+    opacity: 0.4;
+    transition: opacity $transition-fast;
+  }
+
+  &:hover,
+  &.resizing {
+    background: $color-primary;
+
+    &::before {
+      opacity: 0.8;
+    }
+  }
+}
+
+.resizer-horizontal {
+  width: 4px;
+  cursor: col-resize;
+
+  // Vertical dots pattern
+  &::before {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 24px;
+    background: repeating-linear-gradient(
+      to bottom,
+      $text-muted 0px,
+      $text-muted 2px,
+      transparent 2px,
+      transparent 5px
+    );
+  }
+
+  &:hover,
+  &.resizing {
+    &::before {
+      background: repeating-linear-gradient(
+        to bottom,
+        white 0px,
+        white 2px,
+        transparent 2px,
+        transparent 5px
+      );
+    }
+  }
+}
+
+.resizer-vertical {
+  height: 4px;
+  cursor: row-resize;
+
+  // Horizontal dots pattern
+  &::before {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 2px;
+    background: repeating-linear-gradient(
+      to right,
+      $text-muted 0px,
+      $text-muted 2px,
+      transparent 2px,
+      transparent 5px
+    );
+  }
+
+  &:hover,
+  &.resizing {
+    &::before {
+      background: repeating-linear-gradient(
+        to right,
+        white 0px,
+        white 2px,
+        transparent 2px,
+        transparent 5px
+      );
+    }
+  }
+}
+
+// Buttons
+.btn {
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1px solid transparent;
+
+  &:focus {
+    @include focus-ring;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.btn-primary {
+  background: $color-primary;
+  color: white;
+
+  &:hover {
+    background: $color-primary-dark;
+  }
+}
+
+.btn-secondary {
+  background: $bg-primary;
+  color: $text-secondary;
+  border-color: $border-color;
+
+  &:hover {
+    background: $gray-50;
+    border-color: $gray-300;
+  }
+}
+
+.btn-sm {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-primary;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: rgba($color-primary, 0.1);
+  }
+}
+
+.btn-icon {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: $border-radius;
+  color: $text-secondary;
+
+  &:hover {
+    background: $gray-100;
+    color: $text-primary;
+  }
+
+  &.active {
+    background: rgba($color-primary, 0.15);
+    color: $color-primary;
+  }
+}
+
+// Input styling
+input[type="text"],
+input[type="number"],
+input[type="search"],
+textarea {
+  padding: $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $bg-primary;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  font-family: inherit;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+// Checkbox label base
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+}

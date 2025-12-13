@@ -1,0 +1,886 @@
+// Modal styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Save Query Modal
+// ===========================================
+
+.modal-save-query {
+  max-width: 500px;
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .form-group-favorite {
+    flex: 0 0 auto !important;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: $spacing-sm;
+  }
+
+  .checkbox-label {
+    @include flex-start;
+    gap: $spacing-sm;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    position: relative;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    span {
+      @include flex-start;
+      gap: $spacing-xs;
+    }
+
+    svg {
+      color: #f59e0b;
+      transition: fill 0.15s ease;
+    }
+
+    // When checkbox is checked, fill the star
+    input:checked + span svg {
+      fill: #f59e0b;
+    }
+  }
+
+  .form-hint {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+
+  // Chips select for groups and tags
+  .chips-select {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: $spacing-xs;
+    min-height: 38px;
+
+    .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+      margin-bottom: $spacing-xs;
+
+      &:empty {
+        display: none;
+      }
+
+      &:empty + .chips-input-wrapper {
+        margin-top: 0;
+      }
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      padding: 2px $spacing-sm;
+      background: $bg-tertiary;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-lg;
+      font-size: $font-size-xs;
+      color: $text-primary;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: $color-primary;
+        background: rgba(59, 130, 246, 0.1); // light blue tint
+      }
+
+      &.selected {
+        background: $color-primary;
+        border-color: $color-primary;
+        color: white;
+
+        .chip-remove {
+          background: rgba(255, 255, 255, 0.2);
+          color: inherit;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.35);
+          }
+        }
+      }
+
+      .chip-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.1);
+        color: inherit;
+        opacity: 0.7;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+
+        svg {
+          flex-shrink: 0;
+        }
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.2);
+          opacity: 1;
+        }
+      }
+    }
+
+    .chips-input-wrapper {
+      display: flex;
+      gap: $spacing-xs;
+
+      input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $text-primary;
+        outline: none;
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+
+      .btn-add-chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: $color-primary;
+        border: none;
+        border-radius: $border-radius;
+        color: white;
+        cursor: pointer;
+        transition: background 0.15s ease;
+
+        &:hover {
+          background: $color-primary-dark;
+        }
+      }
+    }
+
+    // Single select mode (for groups)
+    &:not(.chips-multi) {
+      .chip.selected ~ .chip:not(.selected) {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  .sql-preview-mini {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: $spacing-sm;
+    margin: 0;
+    max-height: 100px;
+    overflow: auto;
+    @include custom-scrollbar;
+
+    code {
+      font-family: $font-mono;
+      font-size: $font-size-xs;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+}
+
+// ===========================================
+// Create Database Modal
+// ===========================================
+
+.modal-create-database {
+  max-width: 480px;
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .form-hint {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+
+  .sql-preview-mini {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: $spacing-sm;
+    margin: 0;
+    max-height: 100px;
+    overflow: auto;
+    @include custom-scrollbar;
+
+    code {
+      font-family: $font-mono;
+      font-size: $font-size-xs;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+}
+
+// ===========================================
+// Create Table Panel Styles
+// ===========================================
+
+.create-panel {
+  .create-panel-content {
+    padding: $spacing-md;
+    overflow-y: auto;
+    @include custom-scrollbar;
+  }
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .form-group-lg {
+      flex: 2;
+    }
+
+    .form-group-sm {
+      flex: 0 0 auto;
+    }
+  }
+
+  .form-row-3 {
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+
+  .form-row-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .checkbox-label {
+      @include flex-start;
+      gap: $spacing-xs;
+      cursor: pointer;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .columns-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .column-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $color-primary;
+    }
+
+    &.dragging {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+
+    &.drag-over {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: $text-muted;
+      padding: $spacing-xs;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    .column-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      min-width: 0;
+    }
+
+    .column-name {
+      font-weight: 500;
+      color: $text-primary;
+    }
+
+    .column-type {
+      color: $text-muted;
+      font-size: $font-size-sm;
+      font-family: $font-mono;
+    }
+
+    .column-constraints {
+      color: $color-primary;
+      font-size: $font-size-xs;
+      font-weight: 500;
+    }
+
+    .column-actions {
+      display: flex;
+      gap: $spacing-xs;
+    }
+  }
+
+  .btn-icon-sm {
+    @include button-reset;
+    @include flex-center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    color: $text-muted;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-tertiary;
+      color: $text-primary;
+    }
+  }
+
+  .btn-danger-icon:hover {
+    background: rgba($color-danger, 0.1);
+    color: $color-danger;
+  }
+}
+
+// Column Form Overlay
+.column-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.column-form {
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-form-header {
+  @include flex-between;
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  h4 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 600;
+  }
+}
+
+.column-form-body {
+  padding: $spacing-md;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .form-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+  }
+
+  .form-row-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .checkbox-label {
+      @include flex-start;
+      gap: $spacing-xs;
+      cursor: pointer;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .form-group {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $text-primary;
+
+      .required {
+        color: $color-danger;
+      }
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+}
+
+.column-form-footer {
+  @include flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+}
+
+// Checkbox list for index columns
+.checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  max-height: 150px;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .checkbox-label {
+    @include flex-start;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    background: $bg-tertiary;
+    border-radius: $border-radius;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    transition: all $transition-fast;
+
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    &:hover {
+      background: $bg-primary;
+    }
+
+    &:has(input:checked) {
+      background: rgba($color-primary, 0.15);
+      color: $color-primary;
+    }
+  }
+}
+
+// Templates dropdown
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-lg;
+  z-index: 100;
+  overflow: hidden;
+
+  .dropdown-item {
+    @include button-reset;
+    display: block;
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: $bg-secondary;
+    }
+  }
+}
+
+// ===========================================
+// Confirm Modal
+// ===========================================
+
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 200ms ease;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+
+    .confirm-modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+.confirm-modal {
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 400px;
+  margin: $spacing-md;
+  transform: scale(0.9);
+  opacity: 0;
+  transition: transform 200ms ease, opacity 200ms ease;
+
+  &.confirm-modal-danger {
+    .confirm-modal-icon {
+      color: $color-danger;
+    }
+  }
+
+  &.confirm-modal-warning {
+    .confirm-modal-icon {
+      color: $color-warning;
+    }
+  }
+
+  &.confirm-modal-info {
+    .confirm-modal-icon {
+      color: $color-info;
+    }
+  }
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+}
+
+.confirm-modal-icon {
+  flex-shrink: 0;
+  color: $color-primary;
+
+  svg {
+    display: block;
+  }
+}
+
+.confirm-modal-title {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.confirm-modal-body {
+  padding: $spacing-md;
+}
+
+.confirm-modal-message {
+  margin: 0;
+  font-size: $font-size-base;
+  color: $text-secondary;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+
+  .btn {
+    min-width: 80px;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border: 1px solid transparent;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  .btn-cancel {
+    background: $bg-secondary;
+    color: $text-primary;
+    border-color: $border-color;
+
+    &:hover {
+      background: $bg-tertiary;
+    }
+  }
+
+  .btn-primary {
+    background: $color-primary;
+    color: #fff;
+
+    &:hover {
+      background: $color-primary-dark;
+    }
+  }
+
+  .btn-danger {
+    background: $color-danger;
+    color: #fff;
+
+    &:hover {
+      background: #dc2626;
+    }
+  }
+
+  .btn-warning {
+    background: $color-warning;
+    color: #000;
+
+    &:hover {
+      background: #d97706;
+    }
+  }
+}
+

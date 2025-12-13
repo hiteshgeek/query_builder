@@ -1,0 +1,381 @@
+// Row viewer and editor modal styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// ===========================================
+// Modal Overlay Base (for RowViewer/RowEditor)
+// ===========================================
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+
+  &.show {
+    display: flex;
+  }
+
+  .modal {
+    position: relative;
+    background: $bg-primary;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-lg;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    @include flex-between;
+    padding: $spacing-md;
+    border-bottom: 1px solid $border-color;
+
+    .modal-title {
+      @include flex-start;
+      gap: $spacing-sm;
+      font-size: $font-size-base;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-close {
+      @include button-reset;
+      @include flex-center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      color: $text-muted;
+      transition: all $transition-fast;
+
+      &:hover {
+        background: $bg-tertiary;
+        color: $text-primary;
+      }
+    }
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    @include custom-scrollbar;
+  }
+
+  .modal-footer {
+    @include flex-end;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    border-top: 1px solid $border-color;
+  }
+}
+
+// ===========================================
+// Row Viewer Modal Styles
+// ===========================================
+
+.row-viewer-modal {
+  .row-viewer-content {
+    max-width: 700px;
+    max-height: 85vh;
+  }
+
+  .modal-title svg {
+    color: $color-info;
+  }
+}
+
+.row-viewer-body {
+  overflow-y: auto;
+  max-height: calc(85vh - 140px);
+  padding: $spacing-md;
+}
+
+.row-viewer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.row-viewer-field {
+  padding: $spacing-sm $spacing-md;
+  background: $bg-tertiary;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+}
+
+.field-header {
+  @include flex-start;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+
+  .field-name {
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .field-type {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    font-family: $font-mono;
+  }
+
+  .field-copy-btn {
+    @include button-reset;
+    @include flex-center;
+    margin-left: auto;
+    padding: $spacing-xs;
+    border-radius: 4px;
+    color: $text-muted;
+    opacity: 0;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-secondary;
+      color: $text-primary;
+    }
+  }
+
+  .row-viewer-field:hover & .field-copy-btn {
+    opacity: 1;
+  }
+}
+
+.field-value {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  word-break: break-word;
+
+  &.is-null {
+    color: $text-muted;
+  }
+
+  pre {
+    margin: 0;
+    padding: $spacing-sm;
+    background: $bg-secondary;
+    border-radius: 4px;
+    font-family: $font-mono;
+    font-size: $font-size-xs;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  .json-pretty {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
+
+.row-viewer-empty {
+  @include flex-center;
+  padding: $spacing-xl;
+  color: $text-muted;
+}
+
+// ===========================================
+// Row Editor Modal Styles
+// ===========================================
+
+.row-editor-modal {
+  .row-editor-content {
+    max-width: 600px;
+    max-height: 85vh;
+  }
+
+  .modal-title {
+    .icon-add,
+    .icon-edit,
+    .icon-duplicate {
+      display: none;
+    }
+
+    &.mode-add .icon-add {
+      display: block;
+      color: $color-success;
+    }
+
+    &.mode-edit .icon-edit {
+      display: block;
+      color: $color-warning;
+    }
+
+    &.mode-duplicate .icon-duplicate {
+      display: block;
+      color: $color-info;
+    }
+  }
+}
+
+.row-editor-body {
+  overflow-y: auto;
+  max-height: calc(85vh - 140px);
+  padding: $spacing-md;
+}
+
+.row-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  &.readonly {
+    opacity: 0.7;
+
+    .form-input {
+      background: $bg-tertiary;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.form-label {
+  @include flex-start;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+
+  .field-name {
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  .field-type {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    font-family: $font-mono;
+    margin-left: auto;
+  }
+
+  .field-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+
+    &.pk {
+      background: rgba($color-primary, 0.15);
+      color: $color-primary;
+    }
+
+    &.auto {
+      background: rgba($color-info, 0.15);
+      color: $color-info;
+    }
+
+    &.required {
+      background: rgba($color-danger, 0.15);
+      color: $color-danger;
+    }
+  }
+}
+
+.form-input {
+  width: 100%;
+  padding: $spacing-sm;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  color: $text-primary;
+  transition: all $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.error {
+    border-color: $color-danger;
+    box-shadow: 0 0 0 2px rgba($color-danger, 0.2);
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+textarea.form-input {
+  min-height: 80px;
+  resize: vertical;
+  font-family: $font-mono;
+}
+
+select.form-input {
+  cursor: pointer;
+}
+
+.input-with-null {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .form-input {
+    flex: 1;
+  }
+}
+
+.null-checkbox-label {
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  color: $text-muted;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $text-muted;
+  }
+
+  input[type="checkbox"]:checked + & {
+    background: rgba($color-warning, 0.1);
+    border-color: $color-warning;
+    color: $color-warning;
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dropIndicatorPulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+

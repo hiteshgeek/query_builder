@@ -1,0 +1,352 @@
+// Header styles
+@use "variables" as *;
+@use "mixins" as *;
+
+.app-header {
+  @include flex-between;
+  height: $header-height;
+  padding: 0 $spacing-md;
+  background: $bg-primary;
+  border-bottom: 1px solid $border-color;
+  flex-shrink: 0;
+}
+
+.app-logo {
+  @include flex-start;
+  gap: $spacing-sm;
+  font-weight: 600;
+  font-size: $font-size-lg;
+  color: $color-primary;
+
+  svg {
+    stroke: $color-primary;
+  }
+}
+
+.app-actions {
+  @include flex-start;
+  gap: $spacing-sm;
+}
+
+// Mode Switcher
+.mode-switcher {
+  @include flex-center;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-btn {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: 4px;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $text-muted;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-secondary;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: white;
+    box-shadow: $shadow-sm;
+
+    svg {
+      stroke: white;
+    }
+  }
+}
+
+// Mode-based visibility
+.app[data-mode="browser"] {
+  .query-type-tabs {
+    display: none;
+  }
+
+  .query-panel:not([data-panel="browse"]) {
+    display: none !important;
+  }
+
+  .query-panel[data-panel="browse"] {
+    display: flex !important;
+  }
+}
+
+.app[data-mode="builder"] {
+  .query-panel[data-panel="browse"],
+  .query-panel[data-panel="codegen"] {
+    display: none !important;
+  }
+}
+
+.app[data-mode="codegen"] {
+  .query-type-tabs {
+    display: none;
+  }
+
+  .query-panel:not([data-panel="codegen"]) {
+    display: none !important;
+  }
+
+  .query-panel[data-panel="codegen"] {
+    display: flex !important;
+  }
+}
+
+// Database Selector
+.database-selector {
+  position: relative;
+  margin: 0 $spacing-md;
+}
+
+.database-selector-btn {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 160px;
+
+  svg:first-child {
+    color: $color-primary;
+    flex-shrink: 0;
+  }
+
+  .database-name {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .dropdown-arrow {
+    color: $text-muted;
+    flex-shrink: 0;
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    background: $bg-secondary;
+    border-color: $color-primary;
+  }
+
+  &.active {
+    background: $bg-secondary;
+    border-color: $color-primary;
+
+    .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.database-dropdown {
+  position: absolute;
+  top: calc(100% + $spacing-xs);
+  left: 0;
+  min-width: 280px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-lg;
+  z-index: 1000;
+  display: none;
+
+  &.show {
+    display: block;
+  }
+}
+
+.database-dropdown-header {
+  display: flex;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  border-bottom: 1px solid $border-color;
+
+  input {
+    flex: 1;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    background: $bg-secondary;
+    color: $text-primary;
+    font-size: $font-size-sm;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+}
+
+.database-list {
+  max-height: 300px;
+  overflow-y: auto;
+
+  .loading {
+    padding: $spacing-md;
+    text-align: center;
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+}
+
+.database-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-secondary;
+  }
+
+  &.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: $color-primary;
+
+    .database-item-icon {
+      color: $color-primary;
+    }
+  }
+
+  .database-item-icon {
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+
+  .database-item-name {
+    flex: 1;
+    font-size: $font-size-sm;
+  }
+
+  .database-item-check {
+    color: $color-success;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  &.active .database-item-check {
+    opacity: 1;
+  }
+
+  .database-item-delete {
+    @include button-reset;
+    @include flex-center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    color: $text-muted;
+    opacity: 0;
+    transition: all $transition-fast;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba($color-danger, 0.15);
+      color: $color-danger;
+    }
+  }
+
+  &:hover .database-item-delete {
+    opacity: 1;
+  }
+}
+
+// Header Toggle Group (Saved Queries & History)
+.header-toggle-group {
+  @include flex-center;
+  gap: 2px;
+  padding: 2px;
+  background: $bg-tertiary;
+  border-radius: $border-radius;
+}
+
+.header-toggle-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: $text-muted;
+  transition: all $transition-fast;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-primary;
+  }
+
+  &.active {
+    color: $color-primary;
+    background: $bg-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
+// Theme Toggle
+.theme-toggle {
+  @include flex-center;
+  gap: 2px;
+  padding: 2px;
+  background: $bg-tertiary;
+  border-radius: $border-radius;
+}
+
+.theme-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: $text-muted;
+  transition: all $transition-fast;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-primary;
+  }
+
+  &.active {
+    color: $color-primary;
+    background: $bg-primary;
+    box-shadow: $shadow-sm;
+  }
+}

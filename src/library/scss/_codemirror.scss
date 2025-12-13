@@ -1,0 +1,357 @@
+// CodeMirror and custom query panel styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Custom Query Panel Styles
+// ===========================================
+
+.custom-panel {
+  .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    height: 100%;
+  }
+}
+
+.custom-panel-content {
+  overflow-y: auto;
+  @include custom-scrollbar;
+}
+
+.custom-query-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+}
+
+.editor-toolbar {
+  @include flex-between;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-bottom: none;
+  border-radius: $border-radius $border-radius 0 0;
+}
+
+.editor-toolbar-left {
+  .editor-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: 500;
+  }
+}
+
+.editor-toolbar-right {
+  .editor-hints {
+    display: flex;
+    gap: $spacing-md;
+  }
+
+  .hint-item {
+    font-size: $font-size-xs;
+    color: $text-muted;
+
+    kbd {
+      display: inline-block;
+      padding: 2px 5px;
+      font-size: 10px;
+      font-family: $font-mono;
+      background: $bg-secondary;
+      border: 1px solid $border-color;
+      border-radius: 3px;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.sql-editor-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  border: 1px solid $border-color;
+  border-radius: 0 0 $border-radius $border-radius;
+  background: $bg-primary;
+  min-height: 200px;
+  overflow: hidden;
+
+  // CodeMirror styling
+  .CodeMirror {
+    flex: 1;
+    height: 100% !important;
+    min-height: 200px;
+    font-family: $font-mono;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    border-radius: 0 0 $border-radius $border-radius;
+  }
+}
+
+// Light theme CodeMirror overrides
+[data-theme="light"] .sql-editor-wrapper .CodeMirror {
+  background: #fafafa;
+  color: $text-primary;
+
+  .CodeMirror-gutters {
+    background: #f0f0f0;
+    border-right: 1px solid $border-color;
+  }
+
+  .CodeMirror-linenumber {
+    color: #999;
+  }
+
+  .CodeMirror-cursor {
+    border-left-color: $text-primary;
+  }
+
+  .CodeMirror-selected {
+    background: rgba($color-primary, 0.2) !important;
+  }
+
+  .CodeMirror-activeline-background {
+    background: rgba($color-primary, 0.05);
+  }
+
+  // SQL syntax colors for light theme
+  .cm-keyword {
+    color: #0000ff;
+    font-weight: 600;
+  }
+
+  .cm-string {
+    color: #a31515;
+  }
+
+  .cm-number {
+    color: #098658;
+  }
+
+  .cm-comment {
+    color: #008000;
+    font-style: italic;
+  }
+
+  .cm-operator {
+    color: #000000;
+  }
+
+  .cm-variable-2 {
+    color: #001080;
+  }
+
+  .cm-builtin {
+    color: #0000ff;
+  }
+}
+
+// Dark theme CodeMirror overrides
+[data-theme="dark"] .sql-editor-wrapper .CodeMirror {
+  background: #1e1e2e;
+
+  .CodeMirror-gutters {
+    background: #181825;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .CodeMirror-selected {
+    background: rgba(139, 92, 246, 0.3) !important;
+  }
+}
+
+// CodeMirror hints dropdown
+.CodeMirror-hints {
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $shadow-lg;
+  z-index: 10001;
+  max-height: 200px;
+  overflow-y: auto;
+
+  .CodeMirror-hint {
+    padding: $spacing-xs $spacing-sm;
+    color: $text-primary;
+    cursor: pointer;
+
+    &:hover {
+      background: $bg-secondary;
+    }
+  }
+
+  .CodeMirror-hint-active {
+    background: $color-primary !important;
+    color: white;
+  }
+}
+
+[data-theme="dark"] .CodeMirror-hints {
+  background: #1e1e2e;
+  border-color: rgba(255, 255, 255, 0.1);
+
+  .CodeMirror-hint {
+    color: #cdd6f4;
+
+    &:hover {
+      background: #313244;
+    }
+  }
+}
+
+.editor-line-numbers {
+  display: none; // Hidden when CodeMirror is active
+  width: 40px;
+  min-width: 40px;
+  padding: $spacing-sm 0;
+  background: $bg-tertiary;
+  border-right: 1px solid $border-color;
+  overflow: hidden;
+  text-align: right;
+  user-select: none;
+
+  .line-number {
+    padding: 0 $spacing-sm;
+    font-family: $font-mono;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    color: $text-muted;
+  }
+}
+
+.custom-sql-textarea {
+  flex: 1;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  border: none;
+  background: transparent;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-primary;
+  resize: none;
+  outline: none;
+  overflow: auto;
+  @include custom-scrollbar;
+
+  &::placeholder {
+    color: $text-muted;
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// Query Templates
+.query-templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: $spacing-sm;
+}
+
+.template-btn {
+  @include button-reset;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  text-align: left;
+  transition: all $transition-fast;
+  cursor: pointer;
+
+  &:hover {
+    background: $bg-secondary;
+    border-color: $color-primary;
+  }
+
+  .template-name {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 2px;
+  }
+
+  .template-desc {
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+}
+
+// Recent Queries
+.recent-queries {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  max-height: 200px;
+  overflow-y: auto;
+  @include custom-scrollbar;
+}
+
+.recent-query-item {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $bg-secondary;
+    border-color: $color-primary;
+  }
+
+  &.failed {
+    border-left: 3px solid $color-danger;
+
+    .recent-query-rows {
+      color: $color-danger;
+    }
+  }
+}
+
+.recent-query-sql {
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.recent-query-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: $text-muted;
+}
+
+.recent-query-time {
+  color: $text-muted;
+}
+
+.recent-query-rows {
+  color: $color-success;
+}
+
+// Button text style
+.btn-text {
+  @include button-reset;
+  font-size: $font-size-xs;
+  color: $text-muted;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-primary;
+    text-decoration: underline;
+  }
+}

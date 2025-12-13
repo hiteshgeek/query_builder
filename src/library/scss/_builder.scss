@@ -1,0 +1,605 @@
+// Builder section styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Panels
+.builder-panel,
+.results-panel {
+  background: $bg-primary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.builder-panel {
+  flex: 1;
+  min-height: 300px;
+}
+
+.results-panel {
+  flex: 1;
+  min-height: 200px;
+}
+
+.panel-header {
+  @include flex-between;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+  flex-shrink: 0;
+  gap: $spacing-sm;
+
+  h3 {
+    font-size: $font-size-sm;
+    font-weight: 600;
+  }
+
+  .btn-clear-panel {
+    margin-left: auto;
+    color: $text-secondary;
+
+    &:hover {
+      color: $color-danger;
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
+.panel-tabs {
+  @include flex-start;
+  gap: $spacing-xs;
+}
+
+.tab {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  border-radius: $border-radius;
+
+  &:hover {
+    background: $gray-100;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: white;
+  }
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  @include custom-scrollbar;
+}
+
+.tab-content {
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+// Builder Sections
+.builder-section {
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  &.inline {
+    @include flex-start;
+    gap: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+
+    input {
+      width: 100px;
+    }
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.section-header {
+  @include flex-between;
+  margin-bottom: $spacing-sm;
+
+  span {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $color-primary;
+  }
+}
+
+// Selected Tables
+.selected-tables {
+  min-height: 60px;
+  border: 2px dashed $border-color;
+  border-radius: $border-radius;
+  padding: $spacing-sm;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  &.drag-over {
+    border-color: $color-primary;
+    background: rgba($color-primary, 0.05);
+  }
+}
+
+.placeholder {
+  @include flex-center;
+  width: 100%;
+  color: $text-muted;
+  font-size: $font-size-sm;
+}
+
+.selected-table {
+  background: $gray-100;
+  border-radius: $border-radius;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  .remove-btn {
+    @include button-reset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.12);
+    color: inherit;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.25);
+      opacity: 1;
+    }
+  }
+
+  // Dark theme adjustments
+  [data-theme="dark"] & {
+    .remove-btn {
+      background: rgba(255, 255, 255, 0.15);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
+}
+
+// Containers
+.joins-container,
+.conditions-container,
+.groupby-container,
+.orderby-container {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+// Row styles
+.join-row,
+.condition-row,
+.groupby-row,
+.orderby-row {
+  @include flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $border-radius;
+
+  select,
+  input {
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    font-size: $font-size-sm;
+
+    &:focus {
+      @include focus-ring;
+      border-color: $color-primary;
+    }
+  }
+
+  .remove-btn {
+    @include button-reset;
+    @include flex-center;
+    width: 24px;
+    height: 24px;
+    border-radius: $border-radius;
+    color: $text-muted;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: rgba($color-danger, 0.1);
+      color: $color-danger;
+      opacity: 1;
+    }
+  }
+}
+
+// Group By picker
+.groupby-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.groupby-selected {
+  min-height: 36px;
+  padding: $spacing-xs;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $bg-primary;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  align-items: center;
+
+  .placeholder {
+    color: $text-muted;
+    font-size: $font-size-sm;
+    padding: $spacing-xs;
+  }
+}
+
+// =================================
+// Unified Chip Design System
+// Used for COLUMNS, GROUP BY, ORDER BY
+// =================================
+
+// Shared chip wrapper
+.columns-wrapper,
+.groupby-wrapper,
+.orderby-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+// Shared selected container
+.columns-selected,
+.groupby-selected,
+.orderby-selected {
+  min-height: 36px;
+  padding: $spacing-xs;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $bg-primary;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  align-items: center;
+
+  .placeholder {
+    color: $text-muted;
+    font-size: $font-size-sm;
+    padding: $spacing-xs;
+  }
+}
+
+.columns-selected {
+  max-height: 150px;
+  overflow-y: auto;
+  @include custom-scrollbar;
+}
+
+// Shared chip tag styles
+.column-tag,
+.groupby-tag,
+.orderby-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  // Colors are applied via inline styles from JS (table colors)
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Drag and drop states
+  &.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &.drag-over-left {
+    position: relative;
+    margin-left: 8px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: -2px;
+      bottom: -2px;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: dropIndicatorPulse 0.5s ease-in-out infinite alternate;
+    }
+  }
+
+  &.drag-over-right {
+    position: relative;
+    margin-right: 8px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      top: -2px;
+      bottom: -2px;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: dropIndicatorPulse 0.5s ease-in-out infinite alternate;
+    }
+  }
+
+  .tag-remove {
+    @include button-reset;
+    @include flex-center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.12);
+    color: inherit;
+    opacity: 0.75;
+    transition: all $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.22);
+      opacity: 1;
+    }
+  }
+}
+
+// ORDER BY specific - direction toggle button
+.orderby-tag {
+  .direction-toggle {
+    @include button-reset;
+    @include flex-center;
+    min-width: 36px;
+    height: 18px;
+    padding: 0 $spacing-xs;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.15);
+    color: inherit;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all $transition-fast;
+    gap: 2px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    &.asc {
+      background: rgba(34, 197, 94, 0.25);
+      color: #166534;
+
+      &:hover {
+        background: rgba(34, 197, 94, 0.35);
+      }
+    }
+
+    &.desc {
+      background: rgba(239, 68, 68, 0.25);
+      color: #991b1b;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.35);
+      }
+    }
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
+}
+
+// Shared available container
+.columns-available,
+.groupby-available,
+.orderby-available {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  padding: $spacing-xs;
+  background: $gray-50;
+  border-radius: $border-radius;
+  max-height: 100px;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .placeholder-sm {
+    color: $text-muted;
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+}
+
+// Shared option chip styles
+.column-option,
+.groupby-option,
+.orderby-option {
+  display: inline-block;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  cursor: pointer;
+  transition: all $transition-fast;
+  // Colors are applied via inline styles from JS (table colors)
+
+  &:hover {
+    filter: brightness(0.92);
+    transform: translateY(-1px);
+  }
+}
+
+.select-actions {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+// Limit/Offset row
+.limit-offset-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  .limit-label {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $color-primary;
+    white-space: nowrap;
+  }
+
+  input[type="number"] {
+    width: 100px;
+  }
+}
+
+// Table Drop Zone
+.table-drop-zone {
+  min-height: 44px;
+  padding: $spacing-sm;
+  border: 2px dashed $border-color;
+  border-radius: $border-radius;
+  background: $bg-secondary;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  .placeholder {
+    color: $text-muted;
+    font-size: $font-size-sm;
+    text-align: center;
+    width: 100%;
+  }
+
+  &.drag-over {
+    border-color: $color-primary;
+    background: rgba($color-primary, 0.05);
+  }
+
+  &.has-table {
+    border: none;
+    background: transparent;
+    padding: 0;
+    min-height: auto;
+  }
+}
+
+// Join Suggestions
+.join-suggestions {
+  margin-bottom: $spacing-sm;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.suggestions-header {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  margin-bottom: $spacing-xs;
+}
+
+.join-suggestion {
+  @include flex-between;
+  padding: $spacing-xs $spacing-sm;
+  background: rgba($color-success, 0.1);
+  border: 1px solid rgba($color-success, 0.2);
+  border-radius: $border-radius;
+  margin-bottom: $spacing-xs;
+
+  .suggestion-text {
+    font-family: $font-mono;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+  }
+
+  .btn-use-suggestion {
+    @include button-reset;
+    padding: 2px 8px;
+    font-size: $font-size-xs;
+    font-weight: 500;
+    color: $color-success;
+    border: 1px solid $color-success;
+    border-radius: 3px;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $color-success;
+      color: white;
+    }
+  }
+}
+
+// Color-coded Column Selects
+.column-option-colored {
+  padding: 4px 8px;
+  border-left: 3px solid;
+}
+
+// Distinct Checkbox
+.distinct-checkbox {
+  @include flex-center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: $color-primary;
+  }
+}
+

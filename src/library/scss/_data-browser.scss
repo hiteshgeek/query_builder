@@ -1,0 +1,641 @@
+// Data browser styles
+@use "variables" as *;
+@use "mixins" as *;
+
+// Data Browser Styles
+// ===========================================
+
+.browse-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.browse-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.browse-toolbar {
+  @include flex-between;
+  padding: $spacing-md;
+  background: $bg-secondary;
+  border-bottom: 1px solid $border-color;
+  gap: $spacing-md;
+  flex-shrink: 0;
+}
+
+.browse-toolbar-left {
+  @include flex-start;
+  gap: $spacing-md;
+  flex: 1;
+}
+
+.browse-toolbar-right {
+  @include flex-start;
+  gap: $spacing-sm;
+}
+
+#browse-table-info {
+  @include flex-start;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: $bg-tertiary;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  .browse-table-icon {
+    @include flex-center;
+    color: $color-primary;
+  }
+
+  .browse-table-name {
+    font-weight: 500;
+    color: $text-primary;
+  }
+}
+
+.browse-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  svg {
+    position: absolute;
+    left: 10px;
+    color: $text-muted;
+    pointer-events: none;
+  }
+}
+
+#browse-quick-search {
+  width: 250px;
+  padding: $spacing-xs $spacing-sm;
+  padding-left: 32px;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  color: $text-primary;
+  transition: all $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+#browse-bulk-actions {
+  display: none;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  background: rgba($color-primary, 0.1);
+  border-radius: $border-radius;
+
+  #browse-selected-count {
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $color-primary;
+  }
+}
+
+.browse-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Important for flex children to scroll
+}
+
+#browse-empty-state {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  height: 100%;
+  color: $text-muted;
+  text-align: center;
+
+  svg {
+    opacity: 0.3;
+  }
+
+  p {
+    font-size: $font-size-lg;
+    color: $text-secondary;
+  }
+
+  span {
+    font-size: $font-size-sm;
+  }
+}
+
+// Data Grid Styles
+.data-grid-wrapper {
+  flex: 1;
+  overflow: auto;
+  @include custom-scrollbar;
+}
+
+#data-grid-container {
+  min-width: fit-content;
+}
+
+.data-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $font-size-sm;
+
+  // All cells base styles
+  th,
+  td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    border-bottom: 1px solid $border-color;
+    white-space: nowrap;
+  }
+
+  // All header cells - sticky at top
+  // z-index: 3 (above body cells, below sticky corners)
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    font-weight: 600;
+    color: $text-secondary;
+    background: $bg-secondary;
+    border-bottom: 2px solid $border-color;
+    user-select: none;
+  }
+
+  // Body rows
+  tbody tr {
+    &:hover td {
+      background: $bg-tertiary;
+    }
+
+    &.selected td {
+      background: rgba($color-primary, 0.1);
+    }
+
+    &.selected:hover td {
+      background: rgba($color-primary, 0.15);
+    }
+  }
+
+  // Body cells need explicit background for sticky to work
+  tbody td {
+    background: $bg-primary;
+  }
+}
+
+// ===========================================
+// Sticky Columns - Z-Index Hierarchy:
+// 1. Regular body cells: z-index auto (lowest)
+// 2. Sticky body cells (left/right): z-index 2
+// 3. Header cells: z-index 3
+// 4. Sticky header corners: z-index 4 (highest)
+// ===========================================
+
+// Checkbox column HEADER (top-left corner)
+.grid-col-checkbox {
+  width: 40px;
+  min-width: 40px;
+  text-align: center !important;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 4; // Highest - corner cell
+  background: $bg-secondary;
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+}
+
+.grid-col-header {
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-tertiary;
+  }
+
+  &.sorted {
+    background: rgba($color-primary, 0.05);
+    color: $color-primary;
+  }
+}
+
+.grid-header-content {
+  @include flex-start;
+  gap: $spacing-xs;
+
+  .pk-icon {
+    font-size: 10px;
+  }
+
+  .col-name {
+    flex: 1;
+  }
+
+  .sort-icon {
+    @include flex-center;
+    opacity: 0.3;
+    transition: opacity $transition-fast;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    &.sort-active {
+      opacity: 1;
+      color: $color-primary;
+    }
+  }
+
+  .grid-col-header:hover & .sort-icon {
+    opacity: 0.7;
+  }
+}
+
+.grid-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.pk-cell {
+    font-weight: 500;
+    color: $color-primary;
+  }
+
+  &.null-value {
+    color: $text-muted;
+  }
+}
+
+// Checkbox column BODY cells (sticky left)
+.grid-cell-checkbox {
+  text-align: center !important;
+  position: sticky;
+  left: 0;
+  z-index: 2; // Above regular cells, below header
+  background: $bg-primary;
+
+  tr:hover & {
+    background: $bg-tertiary;
+  }
+
+  tr.selected & {
+    background: rgba($color-primary, 0.1);
+  }
+
+  tr.selected:hover & {
+    background: rgba($color-primary, 0.15);
+  }
+}
+
+// Actions column HEADER (top-right corner)
+.grid-col-actions {
+  width: 120px;
+  min-width: 120px;
+  text-align: center !important;
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 4; // Highest - corner cell
+  background: $bg-secondary;
+  border-left: 1px solid $border-color;
+}
+
+// Actions column BODY cells (sticky right)
+.grid-cell-actions {
+  width: 120px;
+  min-width: 120px;
+  text-align: center !important;
+  position: sticky;
+  right: 0;
+  z-index: 2; // Above regular cells, below header
+  background: $bg-primary;
+  border-left: 1px solid $border-color;
+
+  tr:hover & {
+    background: $bg-tertiary;
+  }
+
+  tr.selected & {
+    background: rgba($color-primary, 0.1);
+  }
+
+  tr.selected:hover & {
+    background: rgba($color-primary, 0.15);
+  }
+}
+
+// Row actions - always visible
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.row-action-btn {
+  @include button-reset;
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: $text-secondary;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $bg-tertiary;
+    color: $text-primary;
+  }
+
+  &.danger:hover {
+    background: rgba($color-danger, 0.1);
+    color: $color-danger;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+
+    &:hover {
+      background: transparent;
+      color: $text-muted;
+    }
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// Cell value badges
+.null-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  background: $bg-tertiary;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.empty-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  background: transparent;
+  border: 1px dashed $border-color;
+  border-radius: 4px;
+  font-size: 10px;
+  font-style: italic;
+  color: $text-muted;
+}
+
+.bool-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+
+  &.true {
+    background: rgba($color-success, 0.15);
+    color: $color-success;
+  }
+
+  &.false {
+    background: rgba($color-danger, 0.15);
+    color: $color-danger;
+  }
+}
+
+.json-value,
+.truncated-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+
+.date-value {
+  font-family: $font-mono;
+  font-size: 12px;
+}
+
+.data-grid-empty {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-xl * 2;
+  color: $text-muted;
+
+  svg {
+    opacity: 0.3;
+  }
+
+  p {
+    font-size: $font-size-lg;
+    color: $text-secondary;
+  }
+
+  .text-muted {
+    font-size: $font-size-sm;
+  }
+}
+
+// Browse Pagination
+#browse-pagination {
+  display: none;
+  @include flex-between;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-secondary;
+  border-top: 1px solid $border-color;
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  strong {
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.pagination-controls {
+  @include flex-center;
+  gap: $spacing-md;
+}
+
+.pagination-limit,
+.pagination-size {
+  @include flex-center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  label {
+    white-space: nowrap;
+  }
+
+  .select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid $text-secondary;
+      pointer-events: none;
+      transition: border-color $transition-fast;
+    }
+
+    &:hover::after {
+      border-top-color: $text-primary;
+    }
+  }
+
+  select {
+    padding: $spacing-sm;
+    padding-right: 28px;
+    min-width: 70px;
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $text-muted;
+      background-color: $bg-secondary;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+    }
+
+    option {
+      background: $bg-primary;
+      color: $text-primary;
+      padding: $spacing-xs;
+    }
+  }
+}
+
+.pagination-nav {
+  @include flex-center;
+  gap: $spacing-xs;
+
+  button {
+    @include button-reset;
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    color: $text-secondary;
+    transition: all $transition-fast;
+
+    &:hover:not(:disabled) {
+      background: $bg-tertiary;
+      color: $text-primary;
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+#pagination-pages {
+  @include flex-center;
+  gap: 2px;
+
+  .page-btn {
+    @include button-reset;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 $spacing-xs;
+    border-radius: 4px;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-tertiary;
+      color: $text-primary;
+    }
+
+    &.active {
+      background: $color-primary;
+      color: white;
+    }
+  }
+
+  .page-ellipsis {
+    padding: 0 $spacing-xs;
+    color: $text-muted;
+  }
+}
+
+// Sidebar browsing state
+.table-item.browsing {
+  > .table-header {
+    background: rgba($color-primary, 0.1);
+    border-left: 3px solid $color-primary;
+
+    .table-name {
+      color: $color-primary;
+      font-weight: 600;
+    }
+  }
+}
+
