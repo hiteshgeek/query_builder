@@ -131,6 +131,17 @@ class CodeGenerator {
     }
 
     bindEvents() {
+        // Configuration tab switching
+        document.querySelectorAll('.codegen-config-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                // Don't switch tabs if clicking on checkbox
+                if (e.target.type === 'checkbox') return;
+
+                const tabName = tab.dataset.configTab;
+                this.switchConfigTab(tabName);
+            });
+        });
+
         // Table drop zone
         const dropZone = document.getElementById('codegen-table-drop');
         if (dropZone) {
@@ -301,6 +312,21 @@ class CodeGenerator {
         // Update tab content
         document.querySelectorAll('.codegen-tab-content').forEach(content => {
             content.classList.toggle('active', content.dataset.tabContent === tabName);
+        });
+    }
+
+    /**
+     * Switch between Model and Manager configuration tabs
+     */
+    switchConfigTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.codegen-config-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.configTab === tabName);
+        });
+
+        // Update panes
+        document.querySelectorAll('.codegen-config-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.dataset.configPane === tabName);
         });
     }
 

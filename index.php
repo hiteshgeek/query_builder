@@ -1206,127 +1206,118 @@ $basePath = get_base_path();
                                     </div>
                                 </div>
 
-                                <!-- Generate Options -->
-                                <div class="builder-section codegen-generate-section">
-                                    <div class="section-header">
-                                        <span>GENERATE</span>
-                                    </div>
-                                    <div class="codegen-generate-options">
-                                        <label class="checkbox-label">
+                                <!-- Configuration Tabs -->
+                                <div class="builder-section codegen-tabs-section">
+                                    <div class="codegen-config-tabs">
+                                        <button class="codegen-config-tab active" data-config-tab="model">
                                             <input type="checkbox" id="codegen-gen-model" checked>
-                                            <span>Model Class</span>
-                                        </label>
-                                        <label class="checkbox-label">
+                                            <span>Model</span>
+                                        </button>
+                                        <button class="codegen-config-tab" data-config-tab="manager">
                                             <input type="checkbox" id="codegen-gen-manager" checked>
-                                            <span>Manager Class</span>
-                                        </label>
+                                            <span>Manager</span>
+                                        </button>
                                     </div>
-                                </div>
 
-                                <!-- Manager Methods Configuration -->
-                                <div class="builder-section codegen-manager-methods-section">
-                                    <div class="section-header">
-                                        <span>MANAGER METHODS</span>
-                                        <div class="section-actions">
+                                    <!-- Model Configuration Tab -->
+                                    <div class="codegen-config-pane active" data-config-pane="model">
+                                        <div class="codegen-config-form" id="codegen-config-form">
+                                            <div class="form-group">
+                                                <label for="codegen-class-name">Class Name</label>
+                                                <input type="text" id="codegen-class-name" class="form-input" placeholder="e.g., User, Product">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="codegen-table-constant">Table Constant</label>
+                                                <input type="text" id="codegen-table-constant" class="form-input" placeholder="e.g., DB_TBL_USERS">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="codegen-extends">Extends</label>
+                                                <input type="text" id="codegen-extends" class="form-input" placeholder="e.g., BaseModel">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="codegen-implements">Implements</label>
+                                                <input type="text" id="codegen-implements" class="form-input" placeholder="e.g., DatabaseObject" value="DatabaseObject">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="codegen-namespace">Namespace</label>
+                                                <input type="text" id="codegen-namespace" class="form-input" placeholder="e.g., App\\Models (optional)">
+                                            </div>
+                                            <div class="codegen-options">
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" id="codegen-getters" checked>
+                                                    <span>Getters</span>
+                                                </label>
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" id="codegen-setters" checked>
+                                                    <span>Setters</span>
+                                                </label>
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" id="codegen-crud" checked>
+                                                    <span>CRUD</span>
+                                                </label>
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" id="codegen-constructor" checked>
+                                                    <span>Constructor Load</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Manager Configuration Tab -->
+                                    <div class="codegen-config-pane" data-config-pane="manager">
+                                        <div class="manager-methods-header">
                                             <button class="btn-sm" id="btn-select-all-manager-methods">All</button>
                                             <button class="btn-sm" id="btn-select-none-manager-methods">None</button>
                                         </div>
-                                    </div>
-                                    <div class="codegen-manager-methods">
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Core Finders</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findById" checked><span>findById</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findOne" checked><span>findOne</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findAll" checked><span>findAll</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-find" checked><span>find</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Pagination</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-paginate" checked><span>paginate</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchPaginate" checked><span>searchPaginate</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Search</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-search" checked><span>search</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchOne" checked><span>searchOne</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Count</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-count" checked><span>count</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-searchCount" checked><span>searchCount</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Utility</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-exists" checked><span>exists/existsById</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-distinct" checked><span>distinct</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-pluck" checked><span>pluck</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-column" checked><span>column/ids</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-findByIds" checked><span>findByIds</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-firstLast" checked><span>first/last</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Aggregates</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-aggregates" checked><span>sum/avg/min/max</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Batch Operations</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-deleteWhere" checked><span>deleteWhere</span></label>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-updateWhere" checked><span>updateWhere</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Raw Query</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-raw" checked><span>raw/rawOne</span></label>
-                                        </div>
-                                        <div class="manager-methods-group">
-                                            <span class="methods-group-label">Documentation</span>
-                                            <label class="checkbox-label"><input type="checkbox" id="mgr-usage-examples"><span>Usage Examples</span></label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Model Configuration -->
-                                <div class="builder-section codegen-config-section">
-                                    <div class="section-header">
-                                        <span>CONFIGURATION</span>
-                                    </div>
-                                    <div class="codegen-config-form" id="codegen-config-form">
-                                        <div class="form-group">
-                                            <label for="codegen-class-name">Class Name</label>
-                                            <input type="text" id="codegen-class-name" class="form-input" placeholder="e.g., User, Product">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="codegen-table-constant">Table Constant</label>
-                                            <input type="text" id="codegen-table-constant" class="form-input" placeholder="e.g., DB_TBL_USERS">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="codegen-extends">Extends</label>
-                                            <input type="text" id="codegen-extends" class="form-input" placeholder="e.g., BaseModel">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="codegen-implements">Implements</label>
-                                            <input type="text" id="codegen-implements" class="form-input" placeholder="e.g., DatabaseObject" value="DatabaseObject">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="codegen-namespace">Namespace</label>
-                                            <input type="text" id="codegen-namespace" class="form-input" placeholder="e.g., App\\Models (optional)">
-                                        </div>
-                                        <div class="codegen-options">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="codegen-getters" checked>
-                                                <span>Getters</span>
-                                            </label>
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="codegen-setters" checked>
-                                                <span>Setters</span>
-                                            </label>
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="codegen-crud" checked>
-                                                <span>CRUD</span>
-                                            </label>
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="codegen-constructor" checked>
-                                                <span>Constructor Load</span>
-                                            </label>
+                                        <div class="codegen-manager-methods">
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Core Finders</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-findById" checked><span>findById</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-findOne" checked><span>findOne</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-findAll" checked><span>findAll</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-find" checked><span>find</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Pagination</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-paginate" checked><span>paginate</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-searchPaginate" checked><span>searchPaginate</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Search</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-search" checked><span>search</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-searchOne" checked><span>searchOne</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Count</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-count" checked><span>count</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-searchCount" checked><span>searchCount</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Utility</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-exists" checked><span>exists/existsById</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-distinct" checked><span>distinct</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-pluck" checked><span>pluck</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-column" checked><span>column/ids</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-findByIds" checked><span>findByIds</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-firstLast" checked><span>first/last</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Aggregates</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-aggregates" checked><span>sum/avg/min/max</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Batch Operations</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-deleteWhere" checked><span>deleteWhere</span></label>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-updateWhere" checked><span>updateWhere</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Raw Query</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-raw" checked><span>raw/rawOne</span></label>
+                                            </div>
+                                            <div class="manager-methods-group">
+                                                <span class="methods-group-label">Documentation</span>
+                                                <label class="checkbox-label"><input type="checkbox" id="mgr-usage-examples"><span>Usage Examples</span></label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

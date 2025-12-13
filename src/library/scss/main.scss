@@ -6468,23 +6468,134 @@ select.form-input {
   }
 }
 
-// Manager Methods Configuration
-.codegen-manager-methods-section {
-  // max-height: 280px;
-  // overflow-y: auto;
+// Configuration Tabs Section
+.codegen-tabs-section {
+  display: flex;
+  flex-direction: column;
+
+  .codegen-config-tabs {
+    display: flex;
+    border-bottom: 1px solid $border-color;
+    background: $bg-tertiary;
+  }
+
+  .codegen-config-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-bottom: 2px solid transparent;
+
+    &:hover {
+      color: $text-primary;
+      background: $bg-tertiary;
+    }
+
+    &.active {
+      color: $color-primary;
+      border-bottom-color: $color-primary;
+      background: $bg-secondary;
+    }
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      cursor: pointer;
+    }
+  }
+
+  .codegen-config-pane {
+    display: none;
+    padding: $spacing-sm;
+    overflow-y: auto;
+    max-height: 320px;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  // Model pane form styles
+  .codegen-config-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      label {
+        font-size: 11px;
+        color: $text-secondary;
+        font-weight: 500;
+      }
+
+      .form-input {
+        padding: 6px 8px;
+        font-size: 12px;
+        background: $bg-tertiary;
+        border: 1px solid $border-color;
+        border-radius: 3px;
+        color: $text-primary;
+
+        &:focus {
+          outline: none;
+          border-color: $color-primary;
+        }
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+    }
+
+    .codegen-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: $spacing-xs;
+      border-top: 1px solid $border-color;
+
+      .checkbox-label {
+        font-size: 11px;
+        padding: 4px 8px;
+        background: $bg-tertiary;
+        border-radius: 3px;
+      }
+    }
+  }
+
+  // Manager pane styles
+  .manager-methods-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: $spacing-xs;
+  }
 
   .codegen-manager-methods {
     display: flex;
     flex-direction: column;
     gap: $spacing-xs;
-    padding: $spacing-xs;
   }
 
   .manager-methods-group {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 8px;
+    gap: 8px;
     padding: $spacing-xs;
     background: $bg-tertiary;
     border-radius: 3px;
@@ -6497,6 +6608,7 @@ select.form-input {
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 2px;
+      text-align: center;
     }
 
     .checkbox-label {
