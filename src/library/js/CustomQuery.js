@@ -128,7 +128,7 @@ class CustomQuery {
         if (!this.editor || !schema) return;
 
         const tables = {};
-        if (schema.tables) {
+        if (schema.tables && schema.columns) {
             schema.tables.forEach(table => {
                 const columns = schema.columns[table.name] || [];
                 tables[table.name] = columns.map(col => col.name);
