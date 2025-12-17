@@ -612,6 +612,17 @@ class CodeGenerator {
             code += `    private static $defaultPerPage = 20;\n\n`;
         }
 
+        // Static getTable() method
+        code += `    /**\n`;
+        code += `     * Get the table name\n`;
+        code += `     * \n`;
+        code += `     * @return string\n`;
+        code += `     */\n`;
+        code += `    public static function getTable()\n`;
+        code += `    {\n`;
+        code += `        return SystemTables::${tableConstant};\n`;
+        code += `    }\n\n`;
+
         // =====================================================================
         // CORE FINDER METHODS
         // =====================================================================
@@ -702,7 +713,7 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n`;
             code += `        $whereSQL = $whereData['sql'];\n`;
             code += `        $args = $whereData['args'];\n\n`;
@@ -711,12 +722,7 @@ class CodeGenerator {
             code += `        {\n`;
             code += `            $limitSQL = sprintf(' LIMIT %d, %d', (int)$offset, (int)$limit);\n`;
             code += `        }\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `SELECT *\n`;
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereSQL}\n`;
-            code += `ORDER BY {\$orderBy}{\$limitSQL}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "SELECT * FROM \`{\$table}\` WHERE {\$whereSQL} ORDER BY {\$orderBy}{\$limitSQL}";\n\n`;
             code += `        $res = $db->query($sql, $args);\n`;
             code += `        $items = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
@@ -880,7 +886,7 @@ class CodeGenerator {
                 code += `    ) {\n`;
             }
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        if (empty($searchColumns))\n`;
             code += `        {\n`;
             code += `            $searchColumns = self::$defaultSearchColumns;\n`;
@@ -900,12 +906,7 @@ class CodeGenerator {
             code += `        {\n`;
             code += `            $limitSQL = sprintf(' LIMIT %d, %d', (int)$offset, (int)$limit);\n`;
             code += `        }\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `SELECT *\n`;
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$searchSQL}{\$additionalSQL}\n`;
-            code += `ORDER BY {\$orderBy}{\$limitSQL}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "SELECT * FROM \`{\$table}\` WHERE {\$searchSQL}{\$additionalSQL} ORDER BY {\$orderBy}{\$limitSQL}";\n\n`;
             code += `        $res = $db->query($sql, $args);\n`;
             code += `        $items = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
@@ -963,13 +964,9 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `SELECT COUNT(*) as total\n`;
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "SELECT COUNT(*) as total FROM \`{\$table}\` WHERE {\$whereData['sql']}";\n\n`;
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
             code += `        if (!$res || $db->resultNumRows($res) < 1)\n`;
             code += `        {\n`;
@@ -997,7 +994,7 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        if (empty($searchColumns))\n`;
             code += `        {\n`;
             code += `            $searchColumns = self::$defaultSearchColumns;\n`;
@@ -1012,11 +1009,7 @@ class CodeGenerator {
             code += `        $additionalSQL = ($whereData['sql'] !== '1=1') ? ' AND ' . $whereData['sql'] : '';\n`;
             code += `        $args = $whereData['args'];\n`;
             code += `        $args['::search_keyword'] = '%' . $keyword . '%';\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `SELECT COUNT(*) as total\n`;
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$searchSQL}{\$additionalSQL}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "SELECT COUNT(*) as total FROM \`{\$table}\` WHERE {\$searchSQL}{\$additionalSQL}";\n\n`;
             code += `        $res = $db->query($sql, $args);\n`;
             code += `        if (!$res || $db->resultNumRows($res) < 1)\n`;
             code += `        {\n`;
@@ -1089,15 +1082,10 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n`;
             code += "        $orderSQL = $orderBy ? \"ORDER BY {$orderBy}\" : \"ORDER BY `{$column}` ASC\";\n\n";
-            code += `        $sql = <<<SQL\n`;
-            code += "SELECT DISTINCT `{\\$column}`\n";
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `{\$orderSQL}\n`;
-            code += `SQL;\n\n`;
+            code += "        $sql = \"SELECT DISTINCT `{\\$column}` FROM `{\\$table}` WHERE {\\$whereData['sql']} {\\$orderSQL}\";\n\n";
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
             code += `        $values = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
@@ -1126,15 +1114,10 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n`;
             code += "        $orderSQL = $orderBy ? \"ORDER BY {$orderBy}\" : \"ORDER BY `{$valueColumn}` ASC\";\n\n";
-            code += `        $sql = <<<SQL\n`;
-            code += "SELECT `{\\$keyColumn}`, `{\\$valueColumn}`\n";
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `{\$orderSQL}\n`;
-            code += `SQL;\n\n`;
+            code += "        $sql = \"SELECT `{\\$keyColumn}`, `{\\$valueColumn}` FROM `{\\$table}` WHERE {\\$whereData['sql']} {\\$orderSQL}\";\n\n";
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
             code += `        $pairs = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
@@ -1162,14 +1145,9 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += "SELECT `{\\$column}`\n";
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `ORDER BY {\$orderBy}\n`;
-            code += `SQL;\n\n`;
+            code += "        $sql = \"SELECT `{\\$column}` FROM `{\\$table}` WHERE {\\$whereData['sql']} ORDER BY {\\$orderBy}\";\n\n";
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
             code += `        $values = [];\n`;
             code += `        while ($row = $db->fetchObject($res))\n`;
@@ -1352,14 +1330,10 @@ class CodeGenerator {
             }
             code += `    {\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n`;
             code += `        $function = strtoupper($function);\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += "SELECT {\\$function}(`{\\$column}`) as result\n";
-            code += `FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `SQL;\n\n`;
+            code += "        $sql = \"SELECT {\\$function}(`{\\$column}`) as result FROM `{\\$table}` WHERE {\\$whereData['sql']}\";\n\n";
             code += `        $res = $db->query($sql, $whereData['args']);\n`;
             code += `        if (!$res || $db->resultNumRows($res) < 1)\n`;
             code += `        {\n`;
@@ -1398,12 +1372,9 @@ class CodeGenerator {
             code += `            throw new InvalidArgumentException('Conditions required for deleteWhere to prevent accidental mass deletion');\n`;
             code += `        }\n\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions);\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `DELETE FROM \`{\$table}\`\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "DELETE FROM \`{\$table}\` WHERE {\$whereData['sql']}";\n\n`;
             code += `        $db->query($sql, $whereData['args']);\n`;
             code += `        return $db->affectedRows();\n`;
             code += `    }\n\n`;
@@ -1433,7 +1404,7 @@ class CodeGenerator {
             code += `            return 0;\n`;
             code += `        }\n\n`;
             code += `        $db = Rapidkart::getInstance()->getDB();\n`;
-            code += `        $table = SystemTables::${tableConstant};\n\n`;
+            code += `        $table = self::getTable();\n\n`;
             code += `        $setClauses = [];\n`;
             code += `        $args = [];\n`;
             code += `        foreach ($data as $column => $value)\n`;
@@ -1445,11 +1416,7 @@ class CodeGenerator {
             code += `        $setSQL = implode(', ', $setClauses);\n\n`;
             code += `        $whereData = self::buildWhereClause($conditions, 'where_');\n`;
             code += `        $args = array_merge($args, $whereData['args']);\n\n`;
-            code += `        $sql = <<<SQL\n`;
-            code += `UPDATE \`{\$table}\`\n`;
-            code += `SET {\$setSQL}\n`;
-            code += `WHERE {\$whereData['sql']}\n`;
-            code += `SQL;\n\n`;
+            code += `        $sql = "UPDATE \`{\$table}\` SET {\$setSQL} WHERE {\$whereData['sql']}";\n\n`;
             code += `        $db->query($sql, $args);\n`;
             code += `        return $db->affectedRows();\n`;
             code += `    }\n\n`;
@@ -2070,6 +2037,17 @@ class CodeGenerator {
             code += `        }\n\n`;
         }
 
+        // Static getTable() method
+        code += `        /**\n`;
+        code += `         * Get the table name\n`;
+        code += `         * \n`;
+        code += `         * @return string\n`;
+        code += `         */\n`;
+        code += `        public static function getTable()\n`;
+        code += `        {\n`;
+        code += `            return SystemTables::${tableConstant};\n`;
+        code += `        }\n\n`;
+
         // Getters and Setters
         if (this.config.generateGetters || this.config.generateSetters) {
             code += this.generateGettersSettersLead(selectedCols, isPhp8);
@@ -2109,8 +2087,9 @@ class CodeGenerator {
                 code += `        }\n\n`;
             }
 
-            // Setter
-            if (this.config.generateSetters) {
+            // Setter - skip for auto-increment primary key
+            const isAutoIncrementPK = col.Key === 'PRI' && col.Extra === 'auto_increment';
+            if (this.config.generateSetters && !isAutoIncrementPK) {
                 if (isPhp8) {
                     const phpType = this.mysqlToPhpType(col.Type);
                     const isNullable = col.Null === 'YES';
@@ -2151,8 +2130,9 @@ class CodeGenerator {
                 code += `    }\n\n`;
             }
 
-            // Setter
-            if (this.config.generateSetters) {
+            // Setter - skip for auto-increment primary key
+            const isAutoIncrementPK = col.Key === 'PRI' && col.Extra === 'auto_increment';
+            if (this.config.generateSetters && !isAutoIncrementPK) {
                 if (isPhp8) {
                     const phpType = this.mysqlToPhpType(col.Type);
                     const isNullable = col.Null === 'YES';
@@ -2207,24 +2187,22 @@ class CodeGenerator {
         code += `        public function insert()\n`;
         code += `        {\n`;
         code += `            $db = Rapidkart::getInstance()->getDB();\n`;
-        code += `            $table = SystemTables::${tableConstant};\n\n`;
-        code += `            $sql = <<<SQL\n`;
-        code += `INSERT INTO \`{\$table}\`\n`;
-        code += `(\n`;
+        code += `            $table = self::getTable();\n\n`;
+        code += `            $sql = "INSERT INTO\n`;
+        code += `                        \`{\$table}\`\n`;
+        code += `                    (\n`;
         insertCols.forEach((col, idx) => {
             const comma = idx < insertCols.length - 1 ? ',' : '';
-            const padding = ' '.repeat(maxInsertColLen - col.Field.length);
-            code += `    ${col.Field}${padding}${comma}\n`;
+            code += `                        ${col.Field}${comma}\n`;
         });
-        code += `)\n`;
-        code += `VALUES(\n`;
+        code += `                    )\n`;
+        code += `                    VALUES\n`;
+        code += `                    (\n`;
         insertCols.forEach((col, idx) => {
             const comma = idx < insertCols.length - 1 ? ',' : '';
-            const padding = ' '.repeat(maxInsertColLen - col.Field.length);
-            code += `    '::${col.Field}'${padding}${comma}\n`;
+            code += `                        '::${col.Field}'${comma}\n`;
         });
-        code += `)\n`;
-        code += `SQL;\n\n`;
+        code += `                    )";\n\n`;
         code += `            $args = [\n`;
         insertCols.forEach((col, idx) => {
             const prop = this.columnToProperty(col.Field);
@@ -2255,17 +2233,16 @@ class CodeGenerator {
         code += `        public function update()\n`;
         code += `        {\n`;
         code += `            $db = Rapidkart::getInstance()->getDB();\n`;
-        code += `            $table = SystemTables::${tableConstant};\n\n`;
-        code += `            $sql = <<<SQL\n`;
-        code += `UPDATE \`{\$table}\`\n`;
-        code += `SET\n`;
+        code += `            $table = self::getTable();\n\n`;
+        code += `            $sql = "UPDATE\n`;
+        code += `                        \`{\$table}\`\n`;
+        code += `                    SET\n`;
         updateCols.forEach((col, idx) => {
             const comma = idx < updateCols.length - 1 ? ',' : '';
-            const padding = ' '.repeat(maxUpdateColLen - col.Field.length);
-            code += `    ${col.Field}${padding} = '::${col.Field}'${comma}\n`;
+            code += `                        ${col.Field} = '::${col.Field}'${comma}\n`;
         });
-        code += `WHERE ${pk} = '::${pk}'\n`;
-        code += `SQL;\n\n`;
+        code += `                    WHERE\n`;
+        code += `                        ${pk} = '::${pk}'";\n\n`;
         code += `            $args = [\n`;
         updateCols.forEach((col, idx) => {
             const prop = this.columnToProperty(col.Field);
@@ -2294,12 +2271,13 @@ class CodeGenerator {
         code += `        public static function isExistent($${pkProp})\n`;
         code += `        {\n`;
         code += `            $db = Rapidkart::getInstance()->getDB();\n`;
-        code += `            $table = SystemTables::${tableConstant};\n\n`;
-        code += `            $sql = <<<SQL\n`;
-        code += `SELECT *\n`;
-        code += `FROM \`{\$table}\`\n`;
-        code += `WHERE ${pk} = '::${pk}'\n`;
-        code += `SQL;\n\n`;
+        code += `            $table = self::getTable();\n\n`;
+        code += `            $sql = "SELECT\n`;
+        code += `                        *\n`;
+        code += `                    FROM\n`;
+        code += `                        \`{\$table}\`\n`;
+        code += `                    WHERE\n`;
+        code += `                        ${pk} = '::${pk}'";\n\n`;
         code += `            $res = $db->query($sql, ['::${pk}' => $${pkProp}]);\n`;
         code += `            if (!$res || $db->resultNumRows($res) < 1)\n`;
         code += `            {\n`;
@@ -2317,12 +2295,13 @@ class CodeGenerator {
         code += `        public function load()\n`;
         code += `        {\n`;
         code += `            $db = Rapidkart::getInstance()->getDB();\n`;
-        code += `            $table = SystemTables::${tableConstant};\n\n`;
-        code += `            $sql = <<<SQL\n`;
-        code += `SELECT *\n`;
-        code += `FROM \`{\$table}\`\n`;
-        code += `WHERE ${pk} = '::${pk}'\n`;
-        code += `SQL;\n\n`;
+        code += `            $table = self::getTable();\n\n`;
+        code += `            $sql = "SELECT\n`;
+        code += `                        *\n`;
+        code += `                    FROM\n`;
+        code += `                        \`{\$table}\`\n`;
+        code += `                    WHERE\n`;
+        code += `                        ${pk} = '::${pk}'";\n\n`;
         code += `            $res = $db->query($sql, ['::${pk}' => $this->${pkProp}]);\n`;
         code += `            if (!$res || $db->resultNumRows($res) < 1)\n`;
         code += `            {\n`;
@@ -2346,16 +2325,13 @@ class CodeGenerator {
         code += `        public static function delete($${pkProp})\n`;
         code += `        {\n`;
         code += `            $db = Rapidkart::getInstance()->getDB();\n`;
-        code += `            $table = SystemTables::${tableConstant};\n\n`;
-        code += `            $sql = <<<SQL\n`;
-        code += `DELETE\n`;
-        code += `FROM \`{\$table}\`\n`;
-        code += `WHERE ${pk} = '::${pk}'\n`;
-        code += `SQL;\n\n`;
-        code += `            $args = [\n`;
-        code += `                '::${pk}' => $${pkProp}\n`;
-        code += `            ];\n\n`;
-        code += `            $res = $db->query($sql, $args);\n`;
+        code += `            $table = self::getTable();\n\n`;
+        code += `            $sql = "DELETE\n`;
+        code += `                    FROM\n`;
+        code += `                        \`{\$table}\`\n`;
+        code += `                    WHERE\n`;
+        code += `                        ${pk} = '::${pk}'";\n\n`;
+        code += `            $res = $db->query($sql, ['::${pk}' => $${pkProp}]);\n`;
         code += `            if (!$res)\n`;
         code += `            {\n`;
         code += `                return false;\n`;
