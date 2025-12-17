@@ -27,6 +27,10 @@ class CodeGenerator {
         this.generatedManagerCode = '';
         this.activeTab = 'model';
 
+        // CodeMirror editors for preview
+        this.modelEditor = null;
+        this.managerEditor = null;
+
         // Configuration - defaults match Lead.php template
         this.config = {
             className: '',
@@ -75,6 +79,125 @@ class CodeGenerator {
     init() {
         this.bindEvents();
         this.loadInitialConfig();
+        this.initCodeEditors();
+    }
+
+    /**
+     * Initialize CodeMirror editors for code preview
+     */
+    initCodeEditors() {
+        if (typeof CodeMirror === 'undefined') return;
+
+        // Register rainbow brackets overlay mode
+        this.registerRainbowBracketsMode();
+
+        // Determine theme based on current setting
+        const isDark = document.documentElement.dataset.theme === 'dark';
+        const cmTheme = isDark ? 'dracula' : 'default';
+
+        // CodeMirror config for PHP preview with folding
+        const cmConfig = {
+            mode: 'application/x-httpd-php',
+            theme: cmTheme,
+            lineNumbers: true,
+            readOnly: true,
+            cursorBlinkRate: -1,
+            matchBrackets: false, // Disable default, we use rainbow brackets
+            foldGutter: true,
+            gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+            lineWrapping: false
+        };
+
+        // Initialize Model editor
+        const modelContainer = document.getElementById('codegen-model-preview');
+        if (modelContainer) {
+            modelContainer.innerHTML = '';
+            const modelTextarea = document.createElement('textarea');
+            modelTextarea.id = 'codegen-model-textarea';
+            modelContainer.appendChild(modelTextarea);
+            this.modelEditor = CodeMirror.fromTextArea(modelTextarea, cmConfig);
+            this.modelEditor.setValue('<?php\n// Select a table to generate Model class');
+            // Add rainbow brackets overlay
+            this.modelEditor.addOverlay(this.createRainbowBracketsOverlay());
+        }
+
+        // Initialize Manager editor
+        const managerContainer = document.getElementById('codegen-manager-preview');
+        if (managerContainer) {
+            managerContainer.innerHTML = '';
+            const managerTextarea = document.createElement('textarea');
+            managerTextarea.id = 'codegen-manager-textarea';
+            managerContainer.appendChild(managerTextarea);
+            this.managerEditor = CodeMirror.fromTextArea(managerTextarea, cmConfig);
+            this.managerEditor.setValue('<?php\n// Select a table to generate Manager class');
+            // Add rainbow brackets overlay
+            this.managerEditor.addOverlay(this.createRainbowBracketsOverlay());
+        }
+
+        // Listen for theme changes
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'data-theme') {
+                    const newTheme = document.documentElement.dataset.theme === 'dark' ? 'dracula' : 'default';
+                    if (this.modelEditor) this.modelEditor.setOption('theme', newTheme);
+                    if (this.managerEditor) this.managerEditor.setOption('theme', newTheme);
+                }
+            });
+        });
+        observer.observe(document.documentElement, { attributes: true });
+    }
+
+    /**
+     * Register rainbow brackets mode for CodeMirror
+     */
+    registerRainbowBracketsMode() {
+        // This is a placeholder - the actual coloring is done via overlay
+    }
+
+    /**
+     * Create rainbow brackets overlay for CodeMirror
+     * Colors matching bracket pairs with the same color
+     */
+    createRainbowBracketsOverlay() {
+        const bracketColors = 3; // Number of colors to cycle through
+        let depth = 0;
+
+        return {
+            token: function(stream) {
+                const ch = stream.peek();
+
+                // Opening brackets
+                if (ch === '(' || ch === '{' || ch === '[') {
+                    stream.next();
+                    const colorClass = 'bracket-' + ((depth % bracketColors) + 1);
+                    depth++;
+                    return colorClass;
+                }
+
+                // Closing brackets
+                if (ch === ')' || ch === '}' || ch === ']') {
+                    depth = Math.max(0, depth - 1);
+                    stream.next();
+                    const colorClass = 'bracket-' + ((depth % bracketColors) + 1);
+                    return colorClass;
+                }
+
+                // Skip strings to avoid coloring brackets inside strings
+                if (ch === '"' || ch === "'") {
+                    const quote = ch;
+                    stream.next();
+                    while (!stream.eol()) {
+                        const c = stream.next();
+                        if (c === quote && stream.peek() !== quote) break;
+                        if (c === '\\') stream.next(); // Skip escaped chars
+                    }
+                    return null;
+                }
+
+                stream.next();
+                return null;
+            }
+        };
     }
 
     /**
@@ -313,6 +436,16 @@ class CodeGenerator {
         document.querySelectorAll('.codegen-tab-content').forEach(content => {
             content.classList.toggle('active', content.dataset.tabContent === tabName);
         });
+
+        // Refresh CodeMirror editor when tab becomes visible
+        // CodeMirror doesn't render properly when hidden
+        setTimeout(() => {
+            if (tabName === 'model' && this.modelEditor) {
+                this.modelEditor.refresh();
+            } else if (tabName === 'manager' && this.managerEditor) {
+                this.managerEditor.refresh();
+            }
+        }, 10);
     }
 
     /**
@@ -402,12 +535,10 @@ class CodeGenerator {
             columnsContainer.innerHTML = '<div class="placeholder">Select a table to configure columns</div>';
         }
 
-        const previewContainer = document.getElementById('codegen-model-preview');
-        if (previewContainer) {
-            previewContainer.innerHTML = '<pre><code class="language-php">// Select a table to generate model code</code></pre>';
-        }
-
-        this.generatedCode = '';
+        // Clear generated code and update CodeMirror editors
+        this.generatedModelCode = '';
+        this.generatedManagerCode = '';
+        this.renderCodePreview();
     }
 
     /**
@@ -2374,39 +2505,20 @@ class CodeGenerator {
      * Render the code preview for all tabs
      */
     renderCodePreview() {
-        // Render Model tab
-        const modelContainer = document.getElementById('codegen-model-preview');
-        if (modelContainer) {
-            if (!this.generatedModelCode) {
-                modelContainer.innerHTML = '<pre><code class="language-php">// Select a table to generate model code</code></pre>';
-            } else {
-                const escapedModelCode = this.generatedModelCode
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                modelContainer.innerHTML = `<pre><code class="language-php">${escapedModelCode}</code></pre>`;
-            }
+        // Render Model tab using CodeMirror
+        if (this.modelEditor) {
+            const modelCode = this.generatedModelCode || '<?php\n// Select a table to generate Model class';
+            this.modelEditor.setValue(modelCode);
+            // Refresh after setting value to ensure proper rendering
+            setTimeout(() => this.modelEditor.refresh(), 10);
         }
 
-        // Render Manager tab
-        const managerContainer = document.getElementById('codegen-manager-preview');
-        if (managerContainer) {
-            if (!this.generatedManagerCode) {
-                managerContainer.innerHTML = '<pre><code class="language-php">// Select a table to generate manager code</code></pre>';
-            } else {
-                const escapedManagerCode = this.generatedManagerCode
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                managerContainer.innerHTML = `<pre><code class="language-php">${escapedManagerCode}</code></pre>`;
-            }
-        }
-
-        // Apply syntax highlighting to all code blocks
-        if (window.hljs) {
-            document.querySelectorAll('.codegen-tab-content pre code').forEach((block) => {
-                window.hljs.highlightElement(block);
-            });
+        // Render Manager tab using CodeMirror
+        if (this.managerEditor) {
+            const managerCode = this.generatedManagerCode || '<?php\n// Select a table to generate Manager class';
+            this.managerEditor.setValue(managerCode);
+            // Refresh after setting value to ensure proper rendering
+            setTimeout(() => this.managerEditor.refresh(), 10);
         }
     }
 

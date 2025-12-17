@@ -419,57 +419,139 @@
 
 .codegen-code-preview {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background: $bg-tertiary;
-  font-family: $font-mono;
-  font-size: $font-size-sm;
-  line-height: 1.5;
+  position: relative;
 
-  pre {
-    margin: 0;
-    padding: $spacing-md;
-    background: transparent;
-    min-height: 100%;
+  // CodeMirror editor styling
+  .CodeMirror {
+    height: 100% !important;
+    font-family: 'Fira Code', $font-mono;
+    font-size: 13px;
+    line-height: 1.6;
+    background: $bg-tertiary;
+
+    // Gutter styling - fix positioning
+    .CodeMirror-gutters {
+      background: $bg-secondary !important;
+      border-right: 1px solid $border-color !important;
+      left: 0 !important;
+      min-width: 60px !important;
+    }
+
+    .CodeMirror-gutter-wrapper {
+      left: -60px !important;
+    }
+
+    .CodeMirror-linenumber {
+      color: $text-muted !important;
+      padding: 0 8px 0 8px !important;
+      min-width: 40px !important;
+      text-align: right;
+    }
+
+    .CodeMirror-sizer {
+      margin-left: 60px !important;
+    }
+
+    // Fold gutter
+    .CodeMirror-foldgutter {
+      width: 14px;
+    }
+
+    .CodeMirror-foldgutter-open,
+    .CodeMirror-foldgutter-folded {
+      cursor: pointer;
+      color: $text-muted;
+      line-height: 1.6;
+      padding: 0 2px;
+    }
+
+    .CodeMirror-foldgutter-open:after {
+      content: "▾";
+    }
+
+    .CodeMirror-foldgutter-folded:after {
+      content: "▸";
+    }
+
+    .CodeMirror-foldmarker {
+      background: rgba($color-primary, 0.2);
+      color: $color-primary;
+      padding: 0 4px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    // Code area
+    .CodeMirror-scroll {
+      overflow-y: auto !important;
+      overflow-x: auto !important;
+    }
+
+    .CodeMirror-lines {
+      padding-left: 8px;
+    }
   }
 
-  code {
-    background: transparent;
-    color: $text-primary;
-    white-space: pre;
+  // Light theme overrides
+  [data-theme="light"] & .CodeMirror {
+    background: #fafafa;
+
+    .CodeMirror-gutters {
+      background: #f0f0f0 !important;
+    }
+
+    .cm-keyword {
+      color: #0000ff;
+      font-weight: 600;
+    }
+
+    .cm-variable {
+      color: #001080;
+    }
+
+    .cm-string {
+      color: #a31515;
+    }
+
+    .cm-number {
+      color: #098658;
+    }
+
+    .cm-comment {
+      color: #008000;
+      font-style: italic;
+    }
+
+    // Rainbow brackets - VS Code style (light theme)
+    .cm-bracket-1 { color: #0431fa !important; } // Gold/Yellow
+    .cm-bracket-2 { color: #319331 !important; } // Orchid/Pink
+    .cm-bracket-3 { color: #7b3814 !important; } // Light Sea Green
   }
 
-  // Syntax highlighting colors
-  .hljs-keyword {
-    color: #c678dd;
-  }
+  // Dark theme overrides
+  [data-theme="dark"] & .CodeMirror {
+    background: #1e1e2e;
 
-  .hljs-string {
-    color: #98c379;
-  }
+    .CodeMirror-gutters {
+      background: #181825 !important;
+      border-right-color: rgba(255, 255, 255, 0.1) !important;
+    }
 
-  .hljs-number {
-    color: #d19a66;
-  }
+    .CodeMirror-linenumber {
+      color: #6c7086 !important;
+    }
 
-  .hljs-comment {
-    color: $text-muted;
-    font-style: italic;
-  }
+    .CodeMirror-foldgutter-open,
+    .CodeMirror-foldgutter-folded {
+      color: #6c7086;
+    }
 
-  .hljs-function {
-    color: #61afef;
-  }
-
-  .hljs-class {
-    color: #e5c07b;
-  }
-
-  .hljs-variable {
-    color: #e06c75;
-  }
-
-  .hljs-built_in {
-    color: #56b6c2;
+    // Rainbow brackets - VS Code style (dark theme)
+    .cm-bracket-1 { color: #ffd700 !important; } // Gold/Yellow
+    .cm-bracket-2 { color: #da70d6 !important; } // Orchid/Pink
+    .cm-bracket-3 { color: #179fff !important; } // Light Sea Green
   }
 }
 
