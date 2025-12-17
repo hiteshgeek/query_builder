@@ -1101,7 +1101,7 @@ $basePath = get_base_path();
                                 </div>
                             </div>
                             <div class="browse-toolbar-right">
-                                <div class="browse-search">
+                                <div class="browse-search" id="browse-search-wrapper">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="11" cy="11" r="8"/>
                                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -1120,25 +1120,46 @@ $basePath = get_base_path();
                             </div>
                         </div>
 
-                        <!-- Data Grid Container -->
-                        <div class="data-grid-wrapper" id="data-grid-wrapper">
-                            <div class="browse-empty-state" id="browse-empty-state">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <rect x="3" y="3" width="7" height="7"/>
-                                    <rect x="14" y="3" width="7" height="7"/>
-                                    <rect x="14" y="14" width="7" height="7"/>
-                                    <rect x="3" y="14" width="7" height="7"/>
+                        <!-- Browse Tabs -->
+                        <div class="browse-tabs">
+                            <button class="browse-tab active" data-browse-tab="data">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <line x1="3" y1="9" x2="21" y2="9"/>
+                                    <line x1="9" y1="21" x2="9" y2="9"/>
                                 </svg>
-                                <h4>Select a Table</h4>
-                                <p>Click on a table in the sidebar to browse its data</p>
-                            </div>
-                            <div class="data-grid-container" id="data-grid-container" style="display: none;">
-                                <!-- DataGrid renders here -->
-                            </div>
+                                Data
+                            </button>
+                            <button class="browse-tab" data-browse-tab="schema">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
+                                </svg>
+                                Schema
+                            </button>
                         </div>
 
-                        <!-- Pagination -->
-                        <div class="browse-pagination" id="browse-pagination" style="display: none;">
+                        <!-- Data Tab Content -->
+                        <div class="browse-tab-content active" data-browse-pane="data">
+                            <div class="data-grid-wrapper" id="data-grid-wrapper">
+                                <div class="browse-empty-state" id="browse-empty-state">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="3" y="3" width="7" height="7"/>
+                                        <rect x="14" y="3" width="7" height="7"/>
+                                        <rect x="14" y="14" width="7" height="7"/>
+                                        <rect x="3" y="14" width="7" height="7"/>
+                                    </svg>
+                                    <h4>Select a Table</h4>
+                                    <p>Click on a table in the sidebar to browse its data</p>
+                                </div>
+                                <div class="data-grid-container" id="data-grid-container" style="display: none;">
+                                    <!-- DataGrid renders here -->
+                                </div>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="browse-pagination" id="browse-pagination" style="display: none;">
                             <div class="pagination-info">
                                 <span>Showing </span>
                                 <span id="pagination-start">0</span>
@@ -1185,6 +1206,101 @@ $basePath = get_base_path();
                                         <polyline points="6 17 11 12 6 7"/>
                                     </svg>
                                 </button>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Schema Tab Content -->
+                        <div class="browse-tab-content" data-browse-pane="schema">
+                            <!-- Schema Operations Toolbar -->
+                            <div class="schema-toolbar" id="schema-toolbar" style="display: none;">
+                                <div class="schema-toolbar-group">
+                                    <span class="toolbar-label">Columns</span>
+                                    <button class="btn-sm" id="btn-add-column" data-tooltip="Add Column">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Column
+                                    </button>
+                                    <button class="btn-sm" id="btn-modify-column" data-tooltip="Modify Column" disabled>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                        Modify
+                                    </button>
+                                    <button class="btn-sm btn-danger-sm" id="btn-drop-column" data-tooltip="Drop Column" disabled>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                        </svg>
+                                        Drop
+                                    </button>
+                                </div>
+                                <div class="schema-toolbar-group">
+                                    <span class="toolbar-label">Keys</span>
+                                    <button class="btn-sm" id="btn-add-primary-key" data-tooltip="Add/Modify Primary Key">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                        </svg>
+                                        Primary Key
+                                    </button>
+                                    <button class="btn-sm" id="btn-add-foreign-key" data-tooltip="Add Foreign Key">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                                        </svg>
+                                        Foreign Key
+                                    </button>
+                                    <button class="btn-sm btn-danger-sm" id="btn-drop-foreign-key" data-tooltip="Drop Foreign Key" disabled>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                        Drop FK
+                                    </button>
+                                </div>
+                                <div class="schema-toolbar-group">
+                                    <span class="toolbar-label">Indexes</span>
+                                    <button class="btn-sm" id="btn-add-index" data-tooltip="Add Index">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="4" y1="21" x2="4" y2="14"/>
+                                            <line x1="4" y1="10" x2="4" y2="3"/>
+                                            <line x1="12" y1="21" x2="12" y2="12"/>
+                                            <line x1="12" y1="8" x2="12" y2="3"/>
+                                            <line x1="20" y1="21" x2="20" y2="16"/>
+                                            <line x1="20" y1="12" x2="20" y2="3"/>
+                                        </svg>
+                                        Add Index
+                                    </button>
+                                    <button class="btn-sm" id="btn-add-unique" data-tooltip="Add Unique Constraint">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        </svg>
+                                        Unique
+                                    </button>
+                                    <button class="btn-sm btn-danger-sm" id="btn-drop-index" data-tooltip="Drop Index" disabled>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                        Drop Index
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="schema-view-wrapper" id="schema-view-wrapper">
+                                <div class="browse-empty-state" id="schema-empty-state">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                        <path d="M2 17l10 5 10-5"/>
+                                        <path d="M2 12l10 5 10-5"/>
+                                    </svg>
+                                    <h4>Table Schema</h4>
+                                    <p>Select a table to view its structure</p>
+                                </div>
+                                <div class="schema-table-container" id="schema-table-container" style="display: none;">
+                                    <!-- Schema table renders here -->
+                                </div>
                             </div>
                         </div>
                     </div>

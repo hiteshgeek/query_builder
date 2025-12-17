@@ -115,6 +115,12 @@ try {
         json_error('Cannot drop: the item does not exist or is in use', 400);
     } elseif (strpos($errorMessage, 'Data truncated') !== false) {
         json_error('Data would be truncated. Ensure existing data fits the new column definition', 400);
+    } elseif (strpos($errorMessage, 'Invalid use of NULL') !== false) {
+        json_error('Cannot set NOT NULL: column contains NULL values. Update or delete rows with NULL first.', 400);
+    } elseif (strpos($errorMessage, 'Invalid default value') !== false) {
+        json_error('Invalid default value for this column type', 400);
+    } elseif (strpos($errorMessage, 'Incorrect') !== false && strpos($errorMessage, 'value') !== false) {
+        json_error('Invalid value for this column type. Check your data.', 400);
     } else {
         json_error('Database error: ' . $errorMessage, 500);
     }
@@ -140,10 +146,17 @@ function validateAndBuildOperation(array $op, string $table, PDO $pdo): ?string 
             return buildDropColumn($op);
 
         case 'ADD_INDEX':
-            return buildAddIndex($op);
+        case 'ADD_UNIQUE':
+            return buildAddIndex($op, $type === 'ADD_UNIQUE');
 
         case 'DROP_INDEX':
             return buildDropIndex($op);
+
+        case 'ADD_PRIMARY_KEY':
+            return buildAddPrimaryKey($op);
+
+        case 'DROP_PRIMARY_KEY':
+            return buildDropPrimaryKey();
 
         case 'ADD_FOREIGN_KEY':
             return buildAddForeignKey($op);
@@ -179,7 +192,14 @@ function buildAddColumn(array $op): string {
     $def = $op['definition'];
     $position = $op['position'] ?? '';
 
-    $sql = "ADD COLUMN `$col` $def";
+    // Handle definition as either string or array
+    if (is_array($def)) {
+        $defString = buildColumnDefinition($def);
+    } else {
+        $defString = $def;
+    }
+
+    $sql = "ADD COLUMN `$col` $defString";
 
     if ($position) {
         // Validate position
@@ -202,7 +222,14 @@ function buildModifyColumn(array $op): string {
     $col = validateIdentifier($op['column']);
     $def = $op['definition'];
 
-    return "MODIFY COLUMN `$col` $def";
+    // Handle definition as either string or array
+    if (is_array($def)) {
+        $defString = buildColumnDefinition($def);
+    } else {
+        $defString = $def;
+    }
+
+    return "MODIFY COLUMN `$col` $defString";
 }
 
 function buildRenameColumn(array $op, string $table, PDO $pdo): string {
@@ -252,71 +279,119 @@ function buildDropColumn(array $op): string {
     return "DROP COLUMN `$col`";
 }
 
-function buildAddIndex(array $op): string {
-    if (empty($op['indexName'])) {
-        json_error('Index name is required for ADD_INDEX', 400);
-    }
+function buildAddIndex(array $op, bool $forceUnique = false): string {
+    // Support both 'indexName' and 'name' parameter
+    $indexName = $op['indexName'] ?? $op['name'] ?? null;
+
     if (empty($op['columns']) || !is_array($op['columns'])) {
         json_error('Columns are required for ADD_INDEX', 400);
     }
 
-    $name = validateIdentifier($op['indexName']);
-    $type = in_array($op['indexType'] ?? 'INDEX', ['INDEX', 'UNIQUE', 'FULLTEXT'])
-        ? $op['indexType']
+    // Support both 'indexType' and 'index_type' parameter
+    $indexType = $op['indexType'] ?? $op['index_type'] ?? 'INDEX';
+
+    // Override with UNIQUE if forceUnique is true
+    if ($forceUnique) {
+        $indexType = 'UNIQUE';
+    }
+
+    $type = in_array($indexType, ['INDEX', 'BTREE', 'UNIQUE', 'FULLTEXT'])
+        ? ($indexType === 'BTREE' ? 'INDEX' : $indexType)
         : 'INDEX';
 
     $cols = array_map(function($c) {
         return '`' . validateIdentifier($c) . '`';
     }, $op['columns']);
 
+    // Generate index name if not provided
+    if (empty($indexName)) {
+        $prefix = $type === 'UNIQUE' ? 'uniq' : 'idx';
+        $indexName = $prefix . '_' . implode('_', $op['columns']);
+    }
+    $name = validateIdentifier($indexName);
+
     return "ADD $type `$name` (" . implode(', ', $cols) . ")";
 }
 
+function buildAddPrimaryKey(array $op): string {
+    if (empty($op['columns']) || !is_array($op['columns'])) {
+        json_error('Columns are required for ADD_PRIMARY_KEY', 400);
+    }
+
+    $cols = array_map(function($c) {
+        return '`' . validateIdentifier($c) . '`';
+    }, $op['columns']);
+
+    return "ADD PRIMARY KEY (" . implode(', ', $cols) . ")";
+}
+
+function buildDropPrimaryKey(): string {
+    return "DROP PRIMARY KEY";
+}
+
 function buildDropIndex(array $op): string {
-    if (empty($op['indexName'])) {
+    // Support both 'indexName' and 'name' parameter
+    $indexName = $op['indexName'] ?? $op['name'] ?? null;
+    if (empty($indexName)) {
         json_error('Index name is required for DROP_INDEX', 400);
     }
 
-    $name = validateIdentifier($op['indexName']);
+    $name = validateIdentifier($indexName);
     return "DROP INDEX `$name`";
 }
 
 function buildAddForeignKey(array $op): string {
-    if (empty($op['constraintName'])) {
-        json_error('Constraint name is required for ADD_FOREIGN_KEY', 400);
-    }
+    // Support both 'constraintName' and 'name' parameter
+    $constraintName = $op['constraintName'] ?? $op['name'] ?? null;
+
     if (empty($op['column'])) {
         json_error('Column is required for ADD_FOREIGN_KEY', 400);
     }
-    if (empty($op['refTable'])) {
+
+    // Support both direct params and 'references' object
+    $refTable = $op['refTable'] ?? $op['references']['table'] ?? null;
+    $refCol = $op['refColumn'] ?? $op['references']['column'] ?? null;
+
+    if (empty($refTable)) {
         json_error('Reference table is required for ADD_FOREIGN_KEY', 400);
     }
-    if (empty($op['refColumn'])) {
+    if (empty($refCol)) {
         json_error('Reference column is required for ADD_FOREIGN_KEY', 400);
     }
 
-    $name = validateIdentifier($op['constraintName']);
     $col = validateIdentifier($op['column']);
-    $refTable = validateIdentifier($op['refTable']);
-    $refCol = validateIdentifier($op['refColumn']);
+    $refTable = validateIdentifier($refTable);
+    $refCol = validateIdentifier($refCol);
 
-    $onDelete = in_array($op['onDelete'] ?? 'RESTRICT', ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'])
-        ? $op['onDelete']
+    // Support both camelCase and snake_case
+    $onDeleteParam = $op['onDelete'] ?? $op['on_delete'] ?? 'RESTRICT';
+    $onUpdateParam = $op['onUpdate'] ?? $op['on_update'] ?? 'RESTRICT';
+
+    $onDelete = in_array($onDeleteParam, ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'])
+        ? $onDeleteParam
         : 'RESTRICT';
 
-    $onUpdate = in_array($op['onUpdate'] ?? 'RESTRICT', ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'])
-        ? $op['onUpdate']
+    $onUpdate = in_array($onUpdateParam, ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'])
+        ? $onUpdateParam
         : 'RESTRICT';
+
+    // Generate constraint name if not provided
+    if (empty($constraintName)) {
+        $constraintName = "fk_{$col}_{$refTable}";
+    }
+    $name = validateIdentifier($constraintName);
 
     return "ADD CONSTRAINT `$name` FOREIGN KEY (`$col`) REFERENCES `$refTable`(`$refCol`) ON DELETE $onDelete ON UPDATE $onUpdate";
 }
 
 function buildDropForeignKey(array $op): string {
-    if (empty($op['constraintName'])) {
+    // Support both 'constraintName' and 'name' parameter
+    $constraintName = $op['constraintName'] ?? $op['name'] ?? null;
+    if (empty($constraintName)) {
         json_error('Constraint name is required for DROP_FOREIGN_KEY', 400);
     }
 
-    $name = validateIdentifier($op['constraintName']);
+    $name = validateIdentifier($constraintName);
     return "DROP FOREIGN KEY `$name`";
 }
 
@@ -354,6 +429,56 @@ function buildChangeCharset(array $op): string {
     $collation = in_array($op['collation'] ?? '', $validCollations) ? $op['collation'] : 'utf8mb4_unicode_ci';
 
     return "CHARACTER SET $charset COLLATE $collation";
+}
+
+/**
+ * Build a column definition string from an array of options
+ */
+function buildColumnDefinition(array $def): string {
+    if (empty($def['type'])) {
+        json_error('Column type is required in definition', 400);
+    }
+
+    $parts = [];
+
+    // Type (e.g., VARCHAR(255), INT, etc.)
+    $parts[] = $def['type'];
+
+    // NULL/NOT NULL
+    if (isset($def['nullable'])) {
+        $parts[] = $def['nullable'] ? 'NULL' : 'NOT NULL';
+    }
+
+    // Default value
+    if (array_key_exists('default', $def)) {
+        $default = $def['default'];
+        if ($default === null) {
+            $parts[] = 'DEFAULT NULL';
+        } elseif (strtoupper($default) === 'CURRENT_TIMESTAMP') {
+            $parts[] = 'DEFAULT CURRENT_TIMESTAMP';
+        } elseif (strtoupper($default) === 'NULL') {
+            $parts[] = 'DEFAULT NULL';
+        } elseif (is_numeric($default)) {
+            $parts[] = "DEFAULT $default";
+        } else {
+            // Escape string default values
+            $escapedDefault = addslashes($default);
+            $parts[] = "DEFAULT '$escapedDefault'";
+        }
+    }
+
+    // Auto increment
+    if (!empty($def['auto_increment'])) {
+        $parts[] = 'AUTO_INCREMENT';
+    }
+
+    // Comment
+    if (!empty($def['comment'])) {
+        $escapedComment = addslashes($def['comment']);
+        $parts[] = "COMMENT '$escapedComment'";
+    }
+
+    return implode(' ', $parts);
 }
 
 /**

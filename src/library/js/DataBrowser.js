@@ -7,6 +7,7 @@ import DataGrid from './DataGrid.js';
 import rowViewer from './RowViewer.js';
 import rowEditor from './RowEditor.js';
 import confirmModal from './ConfirmModal.js';
+import schemaEditor from './SchemaEditor.js';
 
 class DataBrowser {
     constructor(schema, onSQLChange, getDatabaseFn) {
@@ -30,6 +31,17 @@ class DataBrowser {
         this.totalRows = 0;
         this.totalPages = 0;
         this.primaryKey = [];
+
+        // Schema data
+        this.schemaData = null;
+
+        // Schema selection state
+        this.selectedSchemaColumn = null;
+        this.selectedSchemaIndex = null;
+        this.selectedSchemaForeignKey = null;
+
+        // Active tab
+        this.activeTab = 'data';
 
         // Loading state
         this.isLoading = false;
@@ -88,6 +100,129 @@ class DataBrowser {
 
         // Bulk delete
         document.getElementById('btn-bulk-delete')?.addEventListener('click', () => this.bulkDelete());
+
+        // Tab switching
+        document.querySelectorAll('.browse-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.browseTab;
+                this.switchTab(tabName);
+            });
+        });
+
+        // Schema toolbar buttons
+        this.bindSchemaToolbarEvents();
+    }
+
+    /**
+     * Bind schema toolbar button events
+     */
+    bindSchemaToolbarEvents() {
+        // Column operations
+        document.getElementById('btn-add-column')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddColumn();
+        });
+
+        document.getElementById('btn-modify-column')?.addEventListener('click', () => {
+            if (!this.selectedSchemaColumn) {
+                toast.warning('Select a column first');
+                return;
+            }
+            this.initSchemaEditor();
+            schemaEditor.showModifyColumn(this.selectedSchemaColumn);
+        });
+
+        document.getElementById('btn-drop-column')?.addEventListener('click', () => {
+            if (!this.selectedSchemaColumn) {
+                toast.warning('Select a column first');
+                return;
+            }
+            this.initSchemaEditor();
+            schemaEditor.dropColumn(this.selectedSchemaColumn.name);
+        });
+
+        // Key operations
+        document.getElementById('btn-add-primary-key')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showPrimaryKey();
+        });
+
+        document.getElementById('btn-add-foreign-key')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddForeignKey();
+        });
+
+        document.getElementById('btn-drop-foreign-key')?.addEventListener('click', () => {
+            if (!this.selectedSchemaForeignKey) {
+                toast.warning('Select a foreign key first');
+                return;
+            }
+            this.initSchemaEditor();
+            schemaEditor.dropForeignKey(this.selectedSchemaForeignKey);
+        });
+
+        // Index operations
+        document.getElementById('btn-add-index')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddIndex(false);
+        });
+
+        document.getElementById('btn-add-unique')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddIndex(true);
+        });
+
+        document.getElementById('btn-drop-index')?.addEventListener('click', () => {
+            if (!this.selectedSchemaIndex) {
+                toast.warning('Select an index first');
+                return;
+            }
+            this.initSchemaEditor();
+            schemaEditor.dropIndex(this.selectedSchemaIndex);
+        });
+    }
+
+    /**
+     * Initialize schema editor with current context
+     */
+    initSchemaEditor() {
+        schemaEditor.setContext(
+            this.selectedTable,
+            this.getDatabase(),
+            this.schemaData,
+            this.schema?.tables || [],
+            () => this.loadSchema() // Refresh on success
+        );
+    }
+
+    /**
+     * Switch between Data and Schema tabs
+     */
+    switchTab(tabName) {
+        if (this.activeTab === tabName) return;
+
+        this.activeTab = tabName;
+
+        // Update tab buttons
+        document.querySelectorAll('.browse-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.browseTab === tabName);
+        });
+
+        // Update tab content
+        document.querySelectorAll('.browse-tab-content').forEach(pane => {
+            pane.classList.toggle('active', pane.dataset.browsePane === tabName);
+        });
+
+        // Show/hide search based on tab
+        const searchWrapper = document.getElementById('browse-search-wrapper');
+        if (searchWrapper) {
+            searchWrapper.style.display = tabName === 'data' ? 'flex' : 'none';
+        }
+
+        // Load schema if switching to schema tab
+        if (tabName === 'schema' && this.selectedTable) {
+            this.loadSchema();
+        }
     }
 
     updateSchema(schema) {
@@ -124,8 +259,16 @@ class DataBrowser {
         // Update table info display
         this.updateTableInfo();
 
+        // Reset schema data for new table
+        this.schemaData = null;
+
         // Fetch data
         await this.fetchData();
+
+        // If schema tab is active, load schema
+        if (this.activeTab === 'schema') {
+            this.loadSchema();
+        }
     }
 
     /**
@@ -732,6 +875,413 @@ class DataBrowser {
 
         this.showEmptyState();
         this.updateBulkActions();
+
+        // Clear schema
+        this.schemaData = null;
+        this.showSchemaEmptyState();
+    }
+
+    /**
+     * Load schema information for the current table
+     */
+    async loadSchema() {
+        if (!this.selectedTable) return;
+
+        try {
+            const params = new URLSearchParams({
+                table: this.selectedTable
+            });
+
+            const database = this.getDatabase();
+            if (database) {
+                params.append('database', database);
+            }
+
+            const response = await fetch(`${window.APP_CONFIG.apiBase}/schema.php?${params}`);
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.message);
+            }
+
+            this.schemaData = result.data;
+            this.renderSchema();
+
+        } catch (error) {
+            console.error('Failed to load schema:', error);
+            toast.error('Failed to load schema: ' + error.message);
+        }
+    }
+
+    /**
+     * Render the schema view (phpMyAdmin-style with inline editing)
+     */
+    renderSchema() {
+        const container = document.getElementById('schema-table-container');
+        const emptyState = document.getElementById('schema-empty-state');
+        const toolbar = document.getElementById('schema-toolbar');
+
+        if (!this.schemaData || !container) return;
+
+        // Hide empty state, show container (hide old toolbar)
+        if (emptyState) emptyState.style.display = 'none';
+        if (toolbar) toolbar.style.display = 'none'; // Hide old toolbar
+        container.style.display = 'block';
+
+        const { columns, indexes, foreign_keys } = this.schemaData;
+
+        // Helper to escape HTML
+        const escapeHtml = (str) => {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        };
+
+        let html = `
+            <div class="schema-section">
+                <div class="schema-section-header">
+                    <h4>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                        </svg>
+                        Columns
+                    </h4>
+                    <button class="btn-sm btn-primary-sm" id="btn-add-column">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Column
+                    </button>
+                </div>
+                <table class="schema-table" id="schema-columns-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th class="schema-col-clickable">Null</th>
+                            <th class="schema-col-clickable">Default</th>
+                            <th class="schema-col-clickable">Comment</th>
+                            <th>Extra</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        columns.forEach((col, index) => {
+            const isPK = this.schemaData.primary_key?.includes(col.name);
+            const isFK = foreign_keys?.some(fk => fk.column === col.name);
+            const hasComment = col.comment && col.comment.trim();
+            const defaultDisplay = col.default !== null ? escapeHtml(col.default) : '<span class="null-value">NULL</span>';
+            const commentDisplay = hasComment ? escapeHtml(col.comment) : '<span class="empty-value">-</span>';
+
+            html += `
+                <tr data-column-index="${index}" data-column-name="${col.name}">
+                    <td>
+                        <span class="schema-col-name">
+                            ${isPK ? '<span class="pk-icon" title="Primary Key">🔑</span>' : ''}
+                            ${isFK ? '<span class="fk-icon" title="Foreign Key">🔗</span>' : ''}
+                            ${escapeHtml(col.name)}
+                        </span>
+                    </td>
+                    <td><span class="schema-col-type">${escapeHtml(col.type)}</span></td>
+                    <td class="schema-cell-editable" data-action="toggle-null" data-column="${col.name}" data-nullable="${col.nullable}" title="Click to toggle NULL">
+                        <span class="schema-col-nullable ${col.nullable ? 'yes' : 'no'}">${col.nullable ? 'YES' : 'NO'}</span>
+                    </td>
+                    <td class="schema-cell-editable" data-action="set-default" data-column="${col.name}" title="Click to edit default">
+                        <span class="schema-col-default">${defaultDisplay}</span>
+                    </td>
+                    <td class="schema-cell-editable" data-action="set-comment" data-column="${col.name}" title="Click to edit comment">
+                        <span class="schema-col-comment">${commentDisplay}</span>
+                    </td>
+                    <td><span class="schema-col-extra">${escapeHtml(col.extra) || ''}</span></td>
+                    <td class="schema-col-actions">
+                        <div class="schema-row-actions">
+                            <button class="schema-action-btn" data-action="modify" data-column="${col.name}" title="Modify Column">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            <button class="schema-action-btn danger" data-action="drop" data-column="${col.name}" title="Drop Column">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table></div>';
+
+        // Indexes section
+        html += `
+            <div class="schema-section">
+                <div class="schema-section-header">
+                    <h4>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+                            <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+                        </svg>
+                        Indexes
+                    </h4>
+                    <div class="schema-section-actions">
+                        <button class="btn-sm" id="btn-add-primary-key" title="Add/Modify Primary Key">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                            </svg>
+                            Primary Key
+                        </button>
+                        <button class="btn-sm" id="btn-add-index">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Add Index
+                        </button>
+                        <button class="btn-sm" id="btn-add-unique">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            Unique
+                        </button>
+                    </div>
+                </div>
+        `;
+
+        if (indexes && indexes.length > 0) {
+            html += `
+                <table class="schema-table" id="schema-indexes-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Columns</th>
+                            <th>Type</th>
+                            <th>Unique</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            indexes.forEach(idx => {
+                const isPrimary = idx.name === 'PRIMARY';
+                html += `
+                    <tr data-index-name="${idx.name}">
+                        <td><span class="schema-col-name">${escapeHtml(idx.name)}</span></td>
+                        <td>${escapeHtml(idx.columns.join(', '))}</td>
+                        <td>${escapeHtml(idx.type) || 'BTREE'}</td>
+                        <td><span class="schema-col-nullable ${idx.unique ? 'yes' : 'no'}">${idx.unique ? 'YES' : 'NO'}</span></td>
+                        <td class="schema-col-actions">
+                            <div class="schema-row-actions">
+                                ${!isPrimary ? `
+                                    <button class="schema-action-btn danger" data-action="drop-index" data-index="${idx.name}" title="Drop Index">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                        </svg>
+                                    </button>
+                                ` : '<span class="text-muted">-</span>'}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+        } else {
+            html += '<p class="schema-no-data">No indexes defined</p>';
+        }
+        html += '</div>';
+
+        // Foreign Keys section
+        html += `
+            <div class="schema-section">
+                <div class="schema-section-header">
+                    <h4>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                        </svg>
+                        Foreign Keys
+                    </h4>
+                    <button class="btn-sm" id="btn-add-foreign-key">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Foreign Key
+                    </button>
+                </div>
+        `;
+
+        if (foreign_keys && foreign_keys.length > 0) {
+            html += `
+                <table class="schema-table" id="schema-fk-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Column</th>
+                            <th>References</th>
+                            <th>On Delete</th>
+                            <th>On Update</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            foreign_keys.forEach(fk => {
+                html += `
+                    <tr data-fk-name="${fk.name}">
+                        <td><span class="schema-col-name">${escapeHtml(fk.name)}</span></td>
+                        <td>${escapeHtml(fk.column)}</td>
+                        <td><span class="schema-fk-ref">${escapeHtml(fk.referenced_table)}.${escapeHtml(fk.referenced_column)}</span></td>
+                        <td>${escapeHtml(fk.on_delete) || 'RESTRICT'}</td>
+                        <td>${escapeHtml(fk.on_update) || 'RESTRICT'}</td>
+                        <td class="schema-col-actions">
+                            <div class="schema-row-actions">
+                                <button class="schema-action-btn danger" data-action="drop-fk" data-fk="${fk.name}" title="Drop Foreign Key">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+        } else {
+            html += '<p class="schema-no-data">No foreign keys defined</p>';
+        }
+        html += '</div>';
+
+        container.innerHTML = html;
+
+        // Bind row click events for selection
+        this.bindSchemaRowEvents();
+    }
+
+    /**
+     * Bind schema row click events and inline editing
+     */
+    bindSchemaRowEvents() {
+        const container = document.getElementById('schema-table-container');
+        if (!container) return;
+
+        // Bind section header buttons (Add Column, Add Index, etc.)
+        this.bindSchemaSectionButtons(container);
+
+        // Bind inline editable cells (Null, Default, Comment)
+        container.querySelectorAll('.schema-cell-editable').forEach(cell => {
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = cell.dataset.action;
+                const colName = cell.dataset.column;
+                const col = this.schemaData?.columns?.find(c => c.name === colName);
+
+                if (!col) return;
+                this.initSchemaEditor();
+
+                switch (action) {
+                    case 'toggle-null': {
+                        const nullable = cell.dataset.nullable === 'true';
+                        schemaEditor.toggleNullable(colName, nullable);
+                        break;
+                    }
+                    case 'set-default':
+                        schemaEditor.showSetDefault(col);
+                        break;
+                    case 'set-comment':
+                        schemaEditor.showSetComment(col);
+                        break;
+                }
+            });
+        });
+
+        // Action button clicks (Modify, Drop)
+        container.querySelectorAll('.schema-action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                this.initSchemaEditor();
+
+                switch (action) {
+                    case 'modify': {
+                        const colName = btn.dataset.column;
+                        const col = this.schemaData?.columns?.find(c => c.name === colName);
+                        if (col) schemaEditor.showModifyColumn(col);
+                        break;
+                    }
+                    case 'drop': {
+                        const colName = btn.dataset.column;
+                        schemaEditor.dropColumn(colName);
+                        break;
+                    }
+                    case 'drop-index': {
+                        const indexName = btn.dataset.index;
+                        schemaEditor.dropIndex(indexName);
+                        break;
+                    }
+                    case 'drop-fk': {
+                        const fkName = btn.dataset.fk;
+                        schemaEditor.dropForeignKey(fkName);
+                        break;
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Bind schema section header buttons
+     */
+    bindSchemaSectionButtons(container) {
+        // Add Column button
+        container.querySelector('#btn-add-column')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddColumn();
+        });
+
+        // Primary Key button
+        container.querySelector('#btn-add-primary-key')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showPrimaryKey();
+        });
+
+        // Add Index button
+        container.querySelector('#btn-add-index')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddIndex(false);
+        });
+
+        // Add Unique button
+        container.querySelector('#btn-add-unique')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddIndex(true);
+        });
+
+        // Add Foreign Key button
+        container.querySelector('#btn-add-foreign-key')?.addEventListener('click', () => {
+            this.initSchemaEditor();
+            schemaEditor.showAddForeignKey();
+        });
+    }
+
+    /**
+     * Show schema empty state
+     */
+    showSchemaEmptyState() {
+        const container = document.getElementById('schema-table-container');
+        const emptyState = document.getElementById('schema-empty-state');
+        const toolbar = document.getElementById('schema-toolbar');
+
+        if (container) container.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'flex';
+        if (toolbar) toolbar.style.display = 'none';
     }
 }
 

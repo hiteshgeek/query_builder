@@ -43,10 +43,45 @@ try {
         }
         $columns = $schema->getColumns($tableName);
         $indexes = $schema->getIndexes($tableName);
+        $primaryKeys = $schema->getPrimaryKeys();
+        $relationships = $schema->getRelationships();
+
+        // Filter relationships to only those for this table
+        $foreignKeys = array_filter($relationships, function ($rel) use ($tableName) {
+            return $rel['from_table'] === $tableName;
+        });
+
+        // Transform columns to match expected format
+        $formattedColumns = array_map(function ($col) {
+            return [
+                'name' => $col['name'],
+                'type' => $col['column_type'],
+                'data_type' => $col['data_type'],
+                'nullable' => $col['nullable'] === 'YES',
+                'default' => $col['default_value'],
+                'extra' => $col['extra'],
+                'comment' => $col['comment']
+            ];
+        }, $columns);
+
+        // Transform foreign keys to match expected format
+        $formattedForeignKeys = array_map(function ($fk) {
+            return [
+                'name' => $fk['constraint_name'],
+                'column' => $fk['from_column'],
+                'referenced_table' => $fk['to_table'],
+                'referenced_column' => $fk['to_column'],
+                'on_delete' => $fk['on_delete'],
+                'on_update' => $fk['on_update']
+            ];
+        }, array_values($foreignKeys));
+
         json_success([
             'table' => $tableName,
-            'columns' => $columns,
-            'indexes' => $indexes
+            'columns' => $formattedColumns,
+            'indexes' => $indexes,
+            'primary_key' => $primaryKeys[$tableName] ?? [],
+            'foreign_keys' => $formattedForeignKeys
         ], 'Table details retrieved successfully');
     }
     elseif (isset($_GET['relationships'])) {
