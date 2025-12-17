@@ -3247,6 +3247,11 @@ class QueryBuilder {
             return;
         }
 
+        // Add database parameter
+        if (this.currentDatabase) {
+            data.database = this.currentDatabase;
+        }
+
         try {
             const response = await fetch(`${window.APP_CONFIG.apiBase}/insert.php`, {
                 method: 'POST',
@@ -3277,6 +3282,15 @@ class QueryBuilder {
 
         countEl.textContent = `${data.affected_rows} row(s) inserted`;
         timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        // Expand bottom panel if collapsed
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+
+        // Switch to results tab
+        this.switchBottomTab('results');
 
         table.style.display = 'none';
         noResults.style.display = 'flex';
@@ -3357,6 +3371,11 @@ class QueryBuilder {
             if (!confirmed) return;
         }
 
+        // Add database parameter
+        if (this.currentDatabase) {
+            data.database = this.currentDatabase;
+        }
+
         try {
             const response = await fetch(`${window.APP_CONFIG.apiBase}/update.php`, {
                 method: 'POST',
@@ -3414,6 +3433,15 @@ class QueryBuilder {
 
         countEl.textContent = `${data.affected_rows} row(s) updated`;
         timeEl.textContent = `${data.execution_time_ms}ms`;
+
+        // Expand bottom panel if collapsed
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+
+        // Switch to results tab
+        this.switchBottomTab('results');
 
         table.style.display = 'none';
         noResults.style.display = 'flex';
@@ -3483,6 +3511,11 @@ class QueryBuilder {
             });
 
             if (!confirmed) return;
+        }
+
+        // Add database parameter
+        if (this.currentDatabase) {
+            data.database = this.currentDatabase;
         }
 
         try {
@@ -3568,6 +3601,15 @@ class QueryBuilder {
         countEl.textContent = `${data.affected_rows} row(s) deleted`;
         timeEl.textContent = `${data.execution_time_ms}ms`;
 
+        // Expand bottom panel if collapsed
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+
+        // Switch to results tab
+        this.switchBottomTab('results');
+
         table.style.display = 'none';
         noResults.style.display = 'flex';
         noResults.innerHTML = `
@@ -3610,6 +3652,11 @@ class QueryBuilder {
             if (!confirmed) return;
         }
 
+        // Add database parameter
+        if (this.currentDatabase) {
+            data.database = this.currentDatabase;
+        }
+
         try {
             const response = await fetch(`${window.APP_CONFIG.apiBase}/alter.php`, {
                 method: 'POST',
@@ -3639,6 +3686,13 @@ class QueryBuilder {
     }
 
     displayAlterResult(data) {
+        // Expand bottom panel if collapsed
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+        this.switchBottomTab('results');
+
         const countEl = document.getElementById('results-count');
         const timeEl = document.getElementById('results-time');
         const noResults = document.getElementById('no-results');
