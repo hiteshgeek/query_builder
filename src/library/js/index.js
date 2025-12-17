@@ -339,9 +339,11 @@ class QueryBuilder {
         }
 
         // Initialize Data Browser
-        this.dataBrowser = new DataBrowser(this.schema, (sql) => {
-            this.updateBrowseSQLPreview(sql);
-        });
+        this.dataBrowser = new DataBrowser(
+            this.schema,
+            (sql) => this.updateBrowseSQLPreview(sql),
+            () => this.currentDatabase
+        );
         if (this.schema) {
             this.dataBrowser.updateSchema(this.schema);
         }

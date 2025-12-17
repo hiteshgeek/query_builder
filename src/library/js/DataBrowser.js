@@ -9,9 +9,10 @@ import rowEditor from './RowEditor.js';
 import confirmModal from './ConfirmModal.js';
 
 class DataBrowser {
-    constructor(schema, onSQLChange) {
+    constructor(schema, onSQLChange, getDatabaseFn) {
         this.schema = schema;
         this.onSQLChange = onSQLChange;
+        this.getDatabase = getDatabaseFn || (() => null);
 
         // State
         this.selectedTable = localStorage.getItem('qb-browse-table') || null;
@@ -141,6 +142,12 @@ class DataBrowser {
                 page: this.page,
                 limit: this.limit
             });
+
+            // Add database parameter
+            const database = this.getDatabase();
+            if (database) {
+                params.append('database', database);
+            }
 
             if (this.sortColumn) {
                 params.append('sort', this.sortColumn);
