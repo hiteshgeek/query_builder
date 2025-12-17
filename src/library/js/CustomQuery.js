@@ -5,9 +5,10 @@
 import toast from './Toast.js';
 
 class CustomQuery {
-    constructor(onSQLChange, onResultsChange) {
+    constructor(onSQLChange, onResultsChange, getDatabaseFn) {
         this.onSQLChange = onSQLChange;
         this.onResultsChange = onResultsChange;
+        this.getDatabase = getDatabaseFn || (() => null);
 
         // State
         this.currentQuery = '';
@@ -17,14 +18,14 @@ class CustomQuery {
         // CodeMirror instance
         this.editor = null;
 
-        // Templates
+        // Templates (PHPMyAdmin style formatting)
         this.templates = {
-            'select-all': 'SELECT *\nFROM table_name\nLIMIT 100;',
-            'select-where': 'SELECT *\nFROM table_name\nWHERE column_name = \'value\'\nLIMIT 100;',
-            'select-join': 'SELECT t1.*, t2.*\nFROM table1 t1\nINNER JOIN table2 t2 ON t1.id = t2.table1_id\nLIMIT 100;',
-            'insert': 'INSERT INTO table_name (column1, column2, column3)\nVALUES (\'value1\', \'value2\', \'value3\');',
-            'update': 'UPDATE table_name\nSET column1 = \'new_value\'\nWHERE id = 1;',
-            'delete': 'DELETE FROM table_name\nWHERE id = 1;',
+            'select-all': 'SELECT\n    *\nFROM\n    table_name\nLIMIT\n    100;',
+            'select-where': 'SELECT\n    *\nFROM\n    table_name\nWHERE\n    column_name = \'value\'\nLIMIT\n    100;',
+            'select-join': 'SELECT\n    t1.*,\n    t2.*\nFROM\n    table1 t1\nINNER JOIN table2 t2 ON t1.id = t2.table1_id\nLIMIT\n    100;',
+            'insert': 'INSERT INTO table_name (\n    column1,\n    column2,\n    column3\n)\nVALUES (\n    \'value1\',\n    \'value2\',\n    \'value3\'\n);',
+            'update': 'UPDATE\n    table_name\nSET\n    column1 = \'new_value\'\nWHERE\n    id = 1;',
+            'delete': 'DELETE\nFROM\n    table_name\nWHERE\n    id = 1;',
             'create-table': 'CREATE TABLE table_name (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;',
             'show-tables': 'SHOW TABLES;',
             'describe': 'DESCRIBE table_name;',
@@ -54,6 +55,8 @@ class CustomQuery {
             mode: 'text/x-mysql',
             theme: cmTheme,
             lineNumbers: true,
+            fixedGutter: true,
+            gutters: ['CodeMirror-linenumbers'],
             lineWrapping: true,
             matchBrackets: true,
             autoCloseBrackets: true,
@@ -100,6 +103,13 @@ class CustomQuery {
         if (lineNumbers) {
             lineNumbers.style.display = 'none';
         }
+
+        // Refresh CodeMirror after a short delay to ensure styles are applied
+        setTimeout(() => {
+            if (this.editor) {
+                this.editor.refresh();
+            }
+        }, 100);
     }
 
     /**
@@ -206,21 +216,13 @@ class CustomQuery {
     }
 
     /**
-     * Insert template at cursor or replace selection
+     * Replace editor content with template
      */
     insertTemplate(template) {
         if (!this.editor) return;
 
-        const currentValue = this.editor.getValue();
-
-        // If there's existing content, add newlines
-        if (currentValue.trim()) {
-            const cursor = this.editor.getCursor();
-            this.editor.replaceRange('\n\n' + template, cursor);
-        } else {
-            this.editor.setValue(template);
-        }
-
+        // Always replace current content with template
+        this.editor.setValue(template);
         this.currentQuery = this.editor.getValue();
         this.updateSQL();
         this.editor.focus();
@@ -259,10 +261,11 @@ class CustomQuery {
         const startTime = performance.now();
 
         try {
+            const database = this.getDatabase();
             const response = await fetch(`${window.APP_CONFIG.apiBase}/custom-query.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sql })
+                body: JSON.stringify({ sql, database })
             });
 
             const result = await response.json();
@@ -394,31 +397,28 @@ class CustomQuery {
     }
 
     /**
-     * Basic SQL formatting
+     * PHPMyAdmin-style SQL formatting
      */
     formatSQL() {
         if (!this.editor || !this.currentQuery.trim()) return;
 
         let sql = this.currentQuery;
 
-        // Keywords to put on new lines
-        const newlineKeywords = [
-            'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'ORDER BY', 'GROUP BY',
-            'HAVING', 'LIMIT', 'OFFSET', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN',
-            'OUTER JOIN', 'JOIN', 'ON', 'SET', 'VALUES', 'INTO', 'INSERT',
-            'UPDATE', 'DELETE', 'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE'
-        ];
+        // Normalize whitespace first
+        sql = sql.replace(/\s+/g, ' ').trim();
 
-        // Uppercase keywords
+        // Keywords to uppercase
         const keywords = [
             'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN',
             'IS', 'NULL', 'AS', 'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET',
-            'ASC', 'DESC', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'JOIN', 'ON', 'SET',
-            'VALUES', 'INTO', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'TABLE',
+            'ASC', 'DESC', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'CROSS', 'JOIN', 'ON',
+            'SET', 'VALUES', 'INTO', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'TABLE',
             'ALTER', 'DROP', 'INDEX', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES',
             'CONSTRAINT', 'DEFAULT', 'AUTO_INCREMENT', 'UNIQUE', 'ENGINE', 'CHARSET',
-            'COLLATE', 'IF', 'EXISTS', 'NOT', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
-            'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CONCAT', 'NOW', 'TRUE', 'FALSE'
+            'COLLATE', 'IF', 'EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+            'DISTINCT', 'ALL', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CONCAT',
+            'COALESCE', 'IFNULL', 'NULLIF', 'NOW', 'CURRENT_TIMESTAMP', 'TRUE', 'FALSE',
+            'UNION', 'EXCEPT', 'INTERSECT', 'USING', 'NATURAL', 'FULL'
         ];
 
         // Uppercase keywords (case-insensitive replace)
@@ -427,23 +427,59 @@ class CustomQuery {
             sql = sql.replace(regex, keyword);
         });
 
-        // Add newlines before keywords
-        newlineKeywords.forEach(keyword => {
-            const regex = new RegExp(`\\s+${keyword}\\b`, 'gi');
-            sql = sql.replace(regex, `\n${keyword}`);
+        // Main clause keywords that start on new line
+        const mainClauses = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT', 'OFFSET', 'SET', 'VALUES'];
+
+        // Add newlines before main clauses
+        mainClauses.forEach(clause => {
+            const regex = new RegExp(`\\s+${clause.replace(/ /g, '\\s+')}\\b`, 'gi');
+            sql = sql.replace(regex, `\n${clause}`);
         });
 
-        // Clean up multiple spaces
-        sql = sql.replace(/  +/g, ' ');
+        // Handle JOIN clauses - they get their own line
+        const joinTypes = ['LEFT OUTER JOIN', 'RIGHT OUTER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'CROSS JOIN', 'JOIN'];
+        joinTypes.forEach(join => {
+            const regex = new RegExp(`\\s+${join.replace(/ /g, '\\s+')}\\b`, 'gi');
+            sql = sql.replace(regex, `\n${join}`);
+        });
 
-        // Clean up multiple newlines
-        sql = sql.replace(/\n\n+/g, '\n\n');
+        // Put SELECT content on next line with indent
+        sql = sql.replace(/^SELECT\s+/i, 'SELECT\n    ');
+        sql = sql.replace(/^SELECT\n    DISTINCT\s+/i, 'SELECT DISTINCT\n    ');
 
-        // Indent after SELECT, SET, VALUES
-        sql = sql.replace(/\n(SELECT|SET|VALUES)\s+/gi, '\n$1\n    ');
+        // Put FROM content on next line with indent
+        sql = sql.replace(/\nFROM\s+/gi, '\nFROM\n    ');
 
-        // Trim
-        sql = sql.trim();
+        // Put WHERE content on next line with indent
+        sql = sql.replace(/\nWHERE\s+/gi, '\nWHERE\n    ');
+
+        // Put ORDER BY content on next line with indent
+        sql = sql.replace(/\nORDER BY\s+/gi, '\nORDER BY\n    ');
+
+        // Put GROUP BY content on next line with indent
+        sql = sql.replace(/\nGROUP BY\s+/gi, '\nGROUP BY\n    ');
+
+        // Put LIMIT content on next line with indent
+        sql = sql.replace(/\nLIMIT\s+/gi, '\nLIMIT\n    ');
+
+        // Put SET content on next line with indent
+        sql = sql.replace(/\nSET\s+/gi, '\nSET\n    ');
+
+        // Split commas to new lines with indent (for SELECT columns, etc.)
+        // Only split commas not inside parentheses (to preserve function arguments)
+        sql = sql.replace(/,\s*(?![^(]*\))/g, ',\n    ');
+
+        // Handle AND/OR in WHERE clause - put on new line with indent
+        sql = sql.replace(/\s+(AND|OR)\s+/gi, '\n    $1 ');
+
+        // Fix ON clause - keep on same line as JOIN
+        sql = sql.replace(/\n\s*ON\s+/gi, ' ON ');
+
+        // Clean up: remove blank lines (lines with only whitespace)
+        sql = sql
+            .split('\n')
+            .filter(line => line.trim().length > 0)
+            .join('\n');
 
         this.editor.setValue(sql);
         this.currentQuery = sql;

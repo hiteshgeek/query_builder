@@ -14,12 +14,13 @@ $basePath = get_base_path();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Query Builder</title>
     <link rel="icon" type="image/svg+xml" href="<?= $basePath ?>/favicon.svg">
-    <link rel="stylesheet" href="<?= asset('query-builder.css') ?>">
-    <link rel="stylesheet" href="<?= asset('main.css') ?>">
-    <!-- CodeMirror CDN for SQL Editor -->
+    <!-- CodeMirror CDN for SQL Editor (load first so our styles can override) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <!-- App styles (load after CodeMirror to override) -->
+    <link rel="stylesheet" href="<?= asset('query-builder.css') ?>">
+    <link rel="stylesheet" href="<?= asset('main.css') ?>">
     <!-- Prevent FOUC by setting theme and panel states before CSS loads -->
     <script>
         (function() {
@@ -959,12 +960,6 @@ $basePath = get_base_path();
                                 </svg>
                                 Clear
                             </button>
-                            <button class="btn-sm btn-primary-sm" id="btn-execute-custom" data-tooltip="Execute Query (Ctrl+Enter)">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="5 3 19 12 5 21 5 3"/>
-                                </svg>
-                                Execute
-                            </button>
                         </div>
                     </div>
                     <div class="panel-content custom-panel-content">
@@ -1750,6 +1745,14 @@ class SQLiDatabase implements Database
                     </svg>
                     Explain
                 </button>
+                <button class="bottom-tab" data-tab="error" id="error-tab" style="display: none;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <span style="color: var(--color-error);">Error</span>
+                </button>
                 <div class="bottom-panel-actions">
                     <span class="results-meta">
                         <span id="results-count"></span>
@@ -1823,6 +1826,25 @@ class SQLiDatabase implements Database
             <div class="bottom-panel-content" id="bottom-explain">
                 <div class="explain-container" id="explain-container">
                     <div class="no-results">Run a query with EXPLAIN to see analysis</div>
+                </div>
+            </div>
+
+            <!-- Error Tab -->
+            <div class="bottom-panel-content" id="bottom-error">
+                <div class="error-container" id="error-container">
+                    <div class="error-box">
+                        <div class="error-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                        </div>
+                        <div class="error-details">
+                            <div class="error-title">Query Failed</div>
+                            <div class="error-message" id="error-message"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

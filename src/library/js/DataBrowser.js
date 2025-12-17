@@ -699,6 +699,7 @@ class DataBrowser {
      */
     clear() {
         this.selectedTable = null;
+        localStorage.removeItem('qb-browse-table');
         this.rows = [];
         this.columns = [];
         this.primaryKey = [];

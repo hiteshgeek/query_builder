@@ -603,3 +603,68 @@
   }
 }
 
+// Error Tab Content
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: $spacing-lg;
+}
+
+.error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  max-width: 600px;
+  width: 100%;
+  background: $bg-primary;
+  border: 1px solid rgba($color-danger, 0.3);
+  border-left: 4px solid $color-danger;
+  border-radius: $border-radius;
+  padding: $spacing-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.error-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-danger, 0.1);
+  border-radius: 50%;
+  color: $color-danger;
+}
+
+.error-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-title {
+  font-weight: 600;
+  font-size: $font-size-base;
+  color: $color-danger;
+  margin-bottom: $spacing-xs;
+}
+
+#error-message {
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  color: $text-primary;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+#error-tab {
+  &.has-error {
+    color: $color-danger;
+
+    svg {
+      stroke: $color-danger;
+    }
+  }
+}
+

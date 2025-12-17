@@ -85,6 +85,67 @@
     font-size: $font-size-sm;
     line-height: 1.5;
     border-radius: 0 0 $border-radius $border-radius;
+
+    // Gutter styles inside .CodeMirror for higher specificity
+    .CodeMirror-gutters {
+      background: #e0e0e0 !important;
+      border-right: 1px solid #ccc !important;
+      min-width: 40px !important;
+      left: 0 !important;
+    }
+
+    .CodeMirror-gutter-wrapper {
+      left: -50px !important;
+    }
+
+    .CodeMirror-linenumber {
+      padding: 0 8px !important;
+      min-width: 32px !important;
+      text-align: right;
+      color: #666 !important;
+    }
+
+    .CodeMirror-sizer {
+      margin-left: 40px !important;
+    }
+
+    .CodeMirror-lines {
+      padding-left: 8px;
+    }
+  }
+
+  // Target default theme specifically
+  .CodeMirror.cm-s-default {
+    .CodeMirror-gutters {
+      background: #e0e0e0 !important;
+      border-right: 1px solid #ccc !important;
+      left: 0 !important;
+    }
+
+    .CodeMirror-gutter-wrapper {
+      left: -50px !important;
+    }
+
+    .CodeMirror-linenumber {
+      color: #666 !important;
+    }
+  }
+
+  // Target dracula theme specifically
+  .CodeMirror.cm-s-dracula {
+    .CodeMirror-gutters {
+      background: #282a36 !important;
+      border-right: 1px solid #44475a !important;
+      left: 0 !important;
+    }
+
+    .CodeMirror-gutter-wrapper {
+      left: -50px !important;
+    }
+
+    .CodeMirror-linenumber {
+      color: #6272a4 !important;
+    }
   }
 }
 
@@ -94,12 +155,25 @@
   color: $text-primary;
 
   .CodeMirror-gutters {
-    background: #f0f0f0;
-    border-right: 1px solid $border-color;
+    background: #e0e0e0 !important;
+    border-right: 1px solid $border-color !important;
+    min-width: 40px !important;
+    left: 0 !important;
+  }
+
+  .CodeMirror-gutter-wrapper {
+    left: -50px !important;
   }
 
   .CodeMirror-linenumber {
-    color: #999;
+    color: #666 !important;
+    padding: 0 8px !important;
+    min-width: 32px !important;
+    text-align: right;
+  }
+
+  .CodeMirror-sizer {
+    margin-left: 40px !important;
   }
 
   .CodeMirror-cursor {
@@ -151,8 +225,25 @@
   background: #1e1e2e;
 
   .CodeMirror-gutters {
-    background: #181825;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: #181825 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    min-width: 40px !important;
+    left: 0 !important;
+  }
+
+  .CodeMirror-gutter-wrapper {
+    left: -50px !important;
+  }
+
+  .CodeMirror-linenumber {
+    color: #6c7086 !important;
+    padding: 0 8px !important;
+    min-width: 32px !important;
+    text-align: right;
+  }
+
+  .CodeMirror-sizer {
+    margin-left: 40px !important;
   }
 
   .CodeMirror-selected {

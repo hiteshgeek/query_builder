@@ -60,8 +60,8 @@ class QueryBuilder {
         ];
         this.nextColorIndex = 0;
 
-        // Query type state
-        this.currentQueryType = 'select';
+        // Query type state - restore from localStorage
+        this.currentQueryType = localStorage.getItem('qb-query-type') || 'select';
 
         // Sub-builders
         this.insertBuilder = null;
@@ -106,8 +106,25 @@ class QueryBuilder {
         await this.loadSchema();
         this.initSubBuilders();
         this.restoreCrossDatabaseMode();
+        this.restoreQueryType();
         // Update SQL preview with formatted initial state
         this.refreshCurrentSQLPreview();
+    }
+
+    /**
+     * Restore query type from localStorage
+     */
+    restoreQueryType() {
+        const savedType = localStorage.getItem('qb-query-type');
+        if (savedType && savedType !== 'browse' && savedType !== 'codegen') {
+            // Update UI to match saved query type
+            document.querySelectorAll('.query-type-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.type === savedType);
+            });
+            document.querySelectorAll('.query-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.dataset.panel === savedType);
+            });
+        }
     }
 
     /**
@@ -332,7 +349,8 @@ class QueryBuilder {
         // Initialize Custom Query
         this.customQuery = new CustomQuery(
             (sql) => this.updateCustomSQLPreview(sql),
-            (results) => this.handleCustomQueryResults(results)
+            (results) => this.handleCustomQueryResults(results),
+            () => this.currentDatabase
         );
 
         // Initialize Code Generator
@@ -461,19 +479,10 @@ class QueryBuilder {
         return div.innerHTML;
     }
 
-    switchBottomTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.bottom-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
-        });
-
-        // Update tab content
-        document.querySelectorAll('.bottom-panel-content').forEach(content => {
-            content.classList.toggle('active', content.id === `bottom-${tabName}`);
-        });
-    }
-
     updateBottomPanelSQL(sql) {
+        // Always switch to SQL tab when query is updated
+        this.switchBottomTab('sql-preview');
+
         // Use CodeMirror editor if available
         if (this.sqlPreviewEditor) {
             // Format the SQL before displaying
@@ -513,18 +522,11 @@ class QueryBuilder {
             formatted = formatted.replace(regex, keyword);
         });
 
-        // Main clause keywords that start on new line (no indent)
-        const mainClauses = [
-            'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
-            'LIMIT', 'OFFSET', 'INSERT INTO', 'UPDATE', 'DELETE FROM',
-            'SET', 'VALUES', 'UNION', 'UNION ALL'
-        ];
-
-        // Sort by length (longest first) to handle multi-word keywords first
-        const sortedMainClauses = [...mainClauses].sort((a, b) => b.length - a.length);
+        // Main clause keywords that start on new line with content indented below
+        const mainClauses = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT', 'OFFSET', 'SET', 'VALUES'];
 
         // Add newlines before main clauses
-        sortedMainClauses.forEach(clause => {
+        mainClauses.forEach(clause => {
             const regex = new RegExp(`\\s+${clause.replace(/ /g, '\\s+')}\\b`, 'gi');
             formatted = formatted.replace(regex, `\n${clause}`);
         });
@@ -536,58 +538,37 @@ class QueryBuilder {
             formatted = formatted.replace(regex, `\n${join}`);
         });
 
-        // Split columns after SELECT - each on new line with indent
+        // Put SELECT content on next line with indent
         formatted = formatted.replace(/^SELECT\s+/i, 'SELECT\n    ');
-        formatted = formatted.replace(/SELECT\n    DISTINCT\s+/i, 'SELECT DISTINCT\n    ');
+        formatted = formatted.replace(/^SELECT\n    DISTINCT\s+/i, 'SELECT DISTINCT\n    ');
 
-        // Split FROM - table name on new indented line
-        formatted = formatted.replace(/\bFROM\s+/gi, 'FROM\n    ');
+        // Put FROM content on next line with indent
+        formatted = formatted.replace(/\nFROM\s+/gi, '\nFROM\n    ');
 
-        // Split ORDER BY columns - each on new line with indent
-        formatted = formatted.replace(/ORDER BY\s+/gi, 'ORDER BY\n    ');
+        // Put WHERE content on next line with indent
+        formatted = formatted.replace(/\nWHERE\s+/gi, '\nWHERE\n    ');
 
-        // Split GROUP BY columns - each on new line with indent
-        formatted = formatted.replace(/GROUP BY\s+/gi, 'GROUP BY\n    ');
+        // Put ORDER BY content on next line with indent
+        formatted = formatted.replace(/\nORDER BY\s+/gi, '\nORDER BY\n    ');
 
-        // Split WHERE - condition on new indented line
-        formatted = formatted.replace(/\bWHERE\s+/gi, 'WHERE\n    ');
+        // Put GROUP BY content on next line with indent
+        formatted = formatted.replace(/\nGROUP BY\s+/gi, '\nGROUP BY\n    ');
 
-        // Split HAVING - condition on new indented line
-        formatted = formatted.replace(/\bHAVING\s+/gi, 'HAVING\n    ');
+        // Split commas to new lines with indent (PHPMyAdmin style - each column on own line)
+        // Only split commas not inside parentheses (to preserve function arguments)
+        formatted = formatted.replace(/,\s*(?![^(]*\))/g, ',\n    ');
 
-        // Split SET columns for UPDATE
-        formatted = formatted.replace(/\bSET\s+/gi, 'SET\n    ');
-
-        // Split commas - add newline and indent after each comma (for columns)
-        formatted = formatted.replace(/,\s*/g, ',\n    ');
-
-        // Ensure main clauses start on new line (even if directly after content)
-        sortedMainClauses.forEach(clause => {
-            // Match clause that's not at start of line
-            const regex = new RegExp(`([^\\n])\\s*(${clause.replace(/ /g, '\\s+')})\\b`, 'gi');
-            formatted = formatted.replace(regex, `$1\n${clause}`);
-        });
-
-        // Ensure JOIN clauses start on new line
-        joinTypes.forEach(join => {
-            const regex = new RegExp(`([^\\n])\\s*(${join.replace(/ /g, '\\s+')})\\b`, 'gi');
-            formatted = formatted.replace(regex, `$1\n${join}`);
-        });
-
-        // Handle AND/OR in WHERE clause - indent them
+        // Handle AND/OR in WHERE clause - put on new line with indent
         formatted = formatted.replace(/\s+(AND|OR)\s+/gi, '\n    $1 ');
 
         // Fix ON clause - keep on same line as JOIN
-        formatted = formatted.replace(/\s+ON\s+/gi, ' ON ');
+        formatted = formatted.replace(/\n\s*ON\s+/gi, ' ON ');
 
-        // Clean up multiple newlines
-        formatted = formatted.replace(/\n\n+/g, '\n');
-
-        // Trim each line
-        formatted = formatted.split('\n').map(line => line.trimEnd()).join('\n');
-
-        // Remove leading/trailing whitespace
-        formatted = formatted.trim();
+        // Clean up: remove blank lines (lines with only whitespace)
+        formatted = formatted
+            .split('\n')
+            .filter(line => line.trim().length > 0)
+            .join('\n');
 
         return formatted;
     }
@@ -970,9 +951,17 @@ class QueryBuilder {
                 this.renderDatabaseList();
                 this.closeDatabaseDropdown();
 
+                // Remember current query type before clearing
+                const previousQueryType = this.currentQueryType;
+
                 // Clear current query state and reload schema
                 this.clearAll();
                 await this.loadSchema();
+
+                // Restore the query type (keep user's selected operation)
+                if (previousQueryType && previousQueryType !== 'browse' && previousQueryType !== 'codegen') {
+                    this.switchQueryType(previousQueryType);
+                }
 
                 toast.success(`Switched to database: ${dbName}`);
             } else {
@@ -1435,6 +1424,13 @@ class QueryBuilder {
                     this.codeGenerator.selectTable(tableName);
                 }
                 break;
+            case 'custom':
+                if (this.customQuery) {
+                    // Insert a SELECT query for this table in PHPMyAdmin format
+                    const query = `SELECT\n    *\nFROM\n    ${tableName}\nLIMIT\n    100;`;
+                    this.customQuery.setSQL(query);
+                }
+                break;
             default:
                 this.addTable(tableName);
         }
@@ -1505,6 +1501,9 @@ class QueryBuilder {
         if (this.currentQueryType === type) return;
 
         this.currentQueryType = type;
+
+        // Save to localStorage for persistence across refreshes
+        localStorage.setItem('qb-query-type', type);
 
         // Update tabs
         document.querySelectorAll('.query-type-tab').forEach(tab => {
@@ -1654,6 +1653,11 @@ class QueryBuilder {
         const targetContent = document.getElementById(`bottom-${tabId}`);
         if (targetContent) {
             targetContent.classList.add('active');
+        }
+
+        // Refresh CodeMirror when SQL tab becomes visible
+        if (tabId === 'sql-preview' && this.sqlPreviewEditor) {
+            setTimeout(() => this.sqlPreviewEditor.refresh(), 10);
         }
     }
 
@@ -1990,6 +1994,8 @@ class QueryBuilder {
 
         this.renderSelectedTables();
         this.renderColumns();
+        this.renderJoins();
+        this.renderConditions();
         this.renderGroupBy();
         this.renderOrderBy();
         this.updateJoinSuggestions();
@@ -2375,16 +2381,21 @@ class QueryBuilder {
         const leftTableKey = this.getTableKey(this.selectedTables[0]);
         const rightTableKey = this.getTableKey(this.selectedTables[1]);
 
+        // Get first column of each table as default
+        const leftColumns = this.getColumnsForTableKey(leftTableKey);
+        const rightColumns = this.getColumnsForTableKey(rightTableKey);
+
         this.joins.push({
             type: 'INNER',
             leftTable: leftTableKey,
-            leftColumn: '',
+            leftColumn: leftColumns[0] || '',
             rightTable: rightTableKey,
-            rightColumn: ''
+            rightColumn: rightColumns[0] || ''
         });
 
         this.renderJoins();
         this.updateJoinSuggestions();
+        this.updateSQLPreview();
     }
 
     getTableKeys() {
@@ -2430,6 +2441,9 @@ class QueryBuilder {
             });
             row.querySelector('.left-table').addEventListener('change', (e) => {
                 this.joins[index].leftTable = e.target.value;
+                // Set first column of new table as default
+                const columns = this.getColumnsForTableKey(e.target.value);
+                this.joins[index].leftColumn = columns[0] || '';
                 this.renderJoins();
                 this.updateSQLPreview();
             });
@@ -2439,6 +2453,9 @@ class QueryBuilder {
             });
             row.querySelector('.right-table').addEventListener('change', (e) => {
                 this.joins[index].rightTable = e.target.value;
+                // Set first column of new table as default
+                const columns = this.getColumnsForTableKey(e.target.value);
+                this.joins[index].rightColumn = columns[0] || '';
                 this.renderJoins();
                 this.updateSQLPreview();
             });
@@ -3110,6 +3127,8 @@ class QueryBuilder {
                 return this.runDelete();
             case 'alter':
                 return this.runAlter();
+            case 'custom':
+                return this.customQuery?.execute();
             case 'users':
                 return this.refreshUsers();
             default:
@@ -3146,11 +3165,14 @@ class QueryBuilder {
     async runSelect() {
         const sql = this.buildSQL();
 
+        // Update SQL preview immediately when running
+        this.updateBottomPanelSQL(sql);
+
         try {
             const response = await fetch(`${window.APP_CONFIG.apiBase}/query.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sql })
+                body: JSON.stringify({ sql, database: this.currentDatabase })
             });
 
             const result = await response.json();
@@ -3165,8 +3187,40 @@ class QueryBuilder {
             this.runExplain(sql);
 
         } catch (error) {
-            toast.error('Query error: ' + error.message);
-            console.error(error);
+            this.showError(error.message);
+        }
+    }
+
+    showError(message) {
+        // Remove "Query error: " prefix if present to avoid duplication
+        const cleanMessage = message.replace(/^Query error:\s*/i, '');
+
+        // Show the error tab
+        const errorTab = document.getElementById('error-tab');
+        const errorMessage = document.getElementById('error-message');
+
+        if (errorTab) {
+            errorTab.style.display = '';
+            errorTab.classList.add('has-error');
+        }
+
+        if (errorMessage) {
+            errorMessage.textContent = cleanMessage;
+        }
+
+        // Switch to error tab
+        this.switchBottomTab('error');
+
+        // Also show toast (shorter message)
+        toast.error(cleanMessage);
+        console.error('Query error:', cleanMessage);
+    }
+
+    hideError() {
+        const errorTab = document.getElementById('error-tab');
+        if (errorTab) {
+            errorTab.style.display = 'none';
+            errorTab.classList.remove('has-error');
         }
     }
 
@@ -3605,7 +3659,7 @@ class QueryBuilder {
             const response = await fetch(`${window.APP_CONFIG.apiBase}/query.php?explain`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sql })
+                body: JSON.stringify({ sql, database: this.currentDatabase })
             });
 
             const result = await response.json();
@@ -3619,6 +3673,9 @@ class QueryBuilder {
     }
 
     displayResults(data, sql = null) {
+        // Hide error tab on successful query
+        this.hideError();
+
         const table = document.getElementById('results-table');
         const noResults = document.getElementById('no-results');
         const countEl = document.getElementById('results-count');
@@ -4335,6 +4392,10 @@ class QueryBuilder {
         this.clearDelete();
         this.clearAlter();
         this.clearCreate();
+
+        if (this.dataBrowser) {
+            this.dataBrowser.clear();
+        }
 
         if (this.userManager) {
             this.userManager.clear();

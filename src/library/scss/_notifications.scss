@@ -359,7 +359,7 @@ html[data-bottom-collapsed="true"] #bottom-resizer {
     // Fallback for pre/code (if CodeMirror not loaded)
     pre {
       margin: 0;
-      padding: $spacing-md;
+      padding: 0;
       background: $bg-secondary;
       min-height: 100%;
 
