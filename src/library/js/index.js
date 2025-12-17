@@ -44,7 +44,7 @@ class QueryBuilder {
         this.conditions = [];
         this.orderBy = [];
         this.groupBy = [];
-        this.limit = null;
+        this.limit = 100; // Default limit to avoid loading too much data
         this.offset = null;
 
         // Table colors for visual identification
@@ -1204,7 +1204,7 @@ class QueryBuilder {
             this.conditions = [];
             this.orderBy = [];
             this.groupBy = [];
-            this.limit = null;
+            this.limit = 100; // Default limit
             this.offset = null;
 
             // Restore tables
@@ -3197,6 +3197,12 @@ class QueryBuilder {
         // Remove "Query error: " prefix if present to avoid duplication
         const cleanMessage = message.replace(/^Query error:\s*/i, '');
 
+        // Expand bottom panel if collapsed to show error
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+
         // Show the error tab
         const errorTab = document.getElementById('error-tab');
         const errorMessage = document.getElementById('error-message');
@@ -3678,6 +3684,12 @@ class QueryBuilder {
         // Hide error tab on successful query
         this.hideError();
 
+        // Expand bottom panel if collapsed to show results
+        const bottomPanel = document.getElementById('bottom-panel');
+        if (bottomPanel && bottomPanel.classList.contains('collapsed')) {
+            this.toggleBottomPanel(true);
+        }
+
         const table = document.getElementById('results-table');
         const noResults = document.getElementById('no-results');
         const countEl = document.getElementById('results-count');
@@ -3974,7 +3986,7 @@ class QueryBuilder {
         this.conditions = [];
         this.orderBy = [];
         this.groupBy = [];
-        this.limit = null;
+        this.limit = 100; // Default limit
         this.offset = null;
 
         // Helper to find schema table (case-insensitive)
@@ -4337,7 +4349,7 @@ class QueryBuilder {
         this.conditions = [];
         this.orderBy = [];
         this.groupBy = [];
-        this.limit = null;
+        this.limit = 100; // Default limit
         this.offset = null;
 
         document.getElementById('limit-input').value = '';

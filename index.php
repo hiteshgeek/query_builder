@@ -424,7 +424,7 @@ $basePath = get_base_path();
                         <div class="builder-section">
                             <div class="limit-offset-row">
                                 <label class="limit-label">LIMIT</label>
-                                <input type="number" id="limit-input" placeholder="No limit" min="0">
+                                <input type="number" id="limit-input" placeholder="100" value="100" min="0">
                                 <label class="limit-label">OFFSET</label>
                                 <input type="number" id="offset-input" placeholder="0" min="0">
                             </div>
